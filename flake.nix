@@ -4,10 +4,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
-    flake-utils = {
-      url = "github:numtide/flake-utils";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    flake-utils.url = "github:numtide/flake-utils";
+    nix-filter.url = "github:numtide/nix-filter";
 
     nltk_data_src = {
       url = "github:nltk/nltk_data";
@@ -15,7 +13,7 @@
     };
 
   };
-  outputs = { nixpkgs, flake-utils, nltk_data_src, ...}:
+  outputs = inputs@{ nixpkgs, flake-utils, nltk_data_src, ...}:
 
   flake-utils.lib.eachDefaultSystem (system:
   let
@@ -42,6 +40,32 @@
         bash tools/download.sh "${collection}"
       '';
     };
+
+    python = pkgs.python3;
+
+    overrides = pkgs.poetry2nix.overrides.withDefaults (self: super: {
+      mypy = super.mypy.overridePythonAttrs (old: { patches = []; });
+      pytoolconfig = super.pytoolconfig.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.pdm-pep517 ]; });
+      jsonschema = super.jsonschema.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.hatch-fancy-pypi-readme ]; });
+      jupyter-core = super.jupyter-core.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.hatchling ]; });
+    });
+
+    nix-filter = inputs.nix-filter.lib;
+
+    py-env = pkgs.poetry2nix.mkPoetryEnv {
+      inherit python overrides;
+
+      projectDir = nix-filter.filter {
+        root = ./.;
+        include = [
+          "poetry.lock"
+          "pyproject.toml"
+        ];
+      };
+
+      editablePackageSources = { };
+    };
+
   in
   {
     devShells.default = pkgs.mkShellNoCC {
@@ -53,8 +77,9 @@
         stdenv.cc.cc.lib
       ]);
 
-      buildInputs = with pkgs; [
-        python3.pkgs.poetry
+      buildInputs = [
+        python.pkgs.poetry
+        py-env
       ];
     };
   });
