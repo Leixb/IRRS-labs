@@ -6,6 +6,11 @@
 
     flake-utils.url = "github:numtide/flake-utils";
     nix-filter.url = "github:numtide/nix-filter";
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
 
     nltk_data_src = {
       url = "github:nltk/nltk_data";
@@ -13,74 +18,92 @@
     };
 
   };
-  outputs = inputs@{ nixpkgs, flake-utils, nltk_data_src, ...}:
 
-  flake-utils.lib.eachDefaultSystem (system:
-  let
-    pkgs = import nixpkgs { inherit system; };
+  outputs = inputs@{ self, nixpkgs, flake-utils, pre-commit-hooks, nltk_data_src, ... }:
 
-    NLTK_DATA = let
-      collection = "all";
-    in pkgs.stdenvNoCC.mkDerivation rec {
-      pname = "nltk_data";
-      version = nltk_data_src.rev;
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
 
-      src = nltk_data_src;
+        NLTK_DATA =
+          let
+            collection = "all";
+          in
+          pkgs.stdenvNoCC.mkDerivation rec {
+            pname = "nltk_data";
+            version = nltk_data_src.rev;
 
-      dontConfigure = true;
-      dontBuild = true;
-      dontFixup = true;
+            src = nltk_data_src;
 
-      nativeBuildInputs = with pkgs; [ python2 unzip ];
+            dontConfigure = true;
+            dontBuild = true;
+            dontFixup = true;
 
-      # Despite the name, download.sh does not download anything from the
-      # internet
-      installPhase = ''
-        export NLTK_DATA_DIR=$out
-        bash tools/download.sh "${collection}"
-      '';
-    };
+            nativeBuildInputs = with pkgs; [ python2 unzip ];
 
-    python = pkgs.python3;
+            # Despite the name, download.sh does not download anything from the
+            # internet
+            installPhase = ''
+              export NLTK_DATA_DIR=$out
+              bash tools/download.sh "${collection}"
+            '';
+          };
 
-    overrides = pkgs.poetry2nix.overrides.withDefaults (self: super: {
-      mypy = super.mypy.overridePythonAttrs (old: { patches = []; });
-      pytoolconfig = super.pytoolconfig.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.pdm-pep517 ]; });
-      jsonschema = super.jsonschema.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.hatch-fancy-pypi-readme ]; });
-      jupyter-core = super.jupyter-core.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.hatchling ]; });
-    });
+        python = pkgs.python3;
 
-    nix-filter = inputs.nix-filter.lib;
+        overrides = pkgs.poetry2nix.overrides.withDefaults (self: super: {
+          mypy = super.mypy.overridePythonAttrs (old: { patches = [ ]; });
+          pytoolconfig = super.pytoolconfig.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.pdm-pep517 ]; });
+          jsonschema = super.jsonschema.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.hatch-fancy-pypi-readme ]; });
+          jupyter-core = super.jupyter-core.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.hatchling ]; });
+        });
 
-    py-env = pkgs.poetry2nix.mkPoetryEnv {
-      inherit python overrides;
+        nix-filter = inputs.nix-filter.lib;
 
-      projectDir = nix-filter.filter {
-        root = ./.;
-        include = [
-          "poetry.lock"
-          "pyproject.toml"
-        ];
-      };
+        py-env = pkgs.poetry2nix.mkPoetryEnv {
+          inherit python overrides;
 
-      editablePackageSources = { };
-    };
+          projectDir = nix-filter.filter {
+            root = ./.;
+            include = [
+              "poetry.lock"
+              "pyproject.toml"
+            ];
+          };
 
-  in
-  {
-    devShells.default = pkgs.mkShellNoCC {
-      name = "python-poetry";
+          editablePackageSources = { };
+        };
 
-      inherit NLTK_DATA;
+      in
+      {
+        devShells.default = pkgs.mkShellNoCC {
+          name = "python-poetry";
 
-      LD_LIBRARY_PATH= pkgs.lib.strings.makeLibraryPath (with pkgs;[
-        stdenv.cc.cc.lib
-      ]);
+          inherit NLTK_DATA;
 
-      buildInputs = [
-        python.pkgs.poetry
-        py-env
-      ];
-    };
-  });
+          LD_LIBRARY_PATH = pkgs.lib.strings.makeLibraryPath (with pkgs;[
+            stdenv.cc.cc.lib
+          ]);
+
+          buildInputs = [
+            python.pkgs.poetry
+            py-env
+            pkgs.nixpkgs-fmt
+          ];
+
+          inherit (self.checks.${system}.pre-commit-check) shellHook;
+        };
+
+        checks = {
+          pre-commit-check = pre-commit-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              black.enable = true;
+              isort.enable = true;
+              nixpkgs-fmt.enable = true;
+            };
+          };
+        };
+
+      });
 }

@@ -1,4 +1,6 @@
 .direnv
+.pre-commit-config.yaml
+result
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
