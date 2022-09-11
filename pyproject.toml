@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "IRRS-lab-exercises"
+version = "0.1.0"
+description = "Laboratory exercises for Information Retrieval and Recommender Systems"
+authors = ["LeixB <abone9999@gmail.com>"]
+license = "GPL3"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+nltk = "^3.7"
+
+[tool.poetry.dev-dependencies]
+python-lsp-server = {extras = ["all"], version = "^1.5.0"}
+pylsp-mypy = "^0.6.2"
+pyls-isort = "^0.2.2"
+python-lsp-black = "^1.2.1"
+pyls-memestra = "^0.0.16"
+pylsp-rope = "^0.1.10"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

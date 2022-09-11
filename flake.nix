@@ -49,7 +49,13 @@
 
       inherit NLTK_DATA;
 
-      buildInputs = [ pkgs.python3.pkgs.poetry ];
+      LD_LIBRARY_PATH= pkgs.lib.strings.makeLibraryPath (with pkgs;[
+        stdenv.cc.cc.lib
+      ]);
+
+      buildInputs = with pkgs; [
+        python3.pkgs.poetry
+      ];
     };
   });
 }
