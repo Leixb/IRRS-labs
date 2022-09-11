@@ -81,10 +81,6 @@
 
           inherit NLTK_DATA;
 
-          LD_LIBRARY_PATH = pkgs.lib.strings.makeLibraryPath (with pkgs;[
-            stdenv.cc.cc.lib
-          ]);
-
           buildInputs = [
             python.pkgs.poetry
             py-env
