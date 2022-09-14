@@ -19,6 +19,7 @@ python-lsp-black = "^1.2.1"
 pyls-memestra = "^0.0.16"
 pylsp-rope = "^0.1.10"
 nbconvert = "<7.0.0" # v7 does not build with poetry2nix
+ipython = "^8.5.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
