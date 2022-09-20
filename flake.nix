@@ -80,18 +80,22 @@
 
       in
       {
-        devShells.default = pkgs.mkShellNoCC {
-          name = "python-poetry";
+        devShells = {
+          default = pkgs.mkShellNoCC {
+            name = "python-poetry";
 
-          inherit NLTK_DATA;
+            inherit NLTK_DATA;
 
-          buildInputs = [
-            python.pkgs.poetry
-            py-env
-            pkgs.nixpkgs-fmt
-          ];
+            buildInputs = [
+              python.pkgs.poetry
+              py-env
+              pkgs.nixpkgs-fmt
+              pkgs.pandoc
+              pkgs.texlive.combined.scheme-full
+            ];
 
-          inherit (self.checks.${system}.pre-commit-check) shellHook;
+            inherit (self.checks.${system}.pre-commit-check) shellHook;
+          };
         };
 
         checks = {
@@ -104,6 +108,39 @@
             };
           };
         };
+
+        packages =
+          let
+            build-report = name: pkgs.runCommandWith
+              {
+                name = "${name}-report";
+
+                derivationArgs = {
+                  buildInputs = with pkgs; [
+                    pandoc
+                    texlive.combined.scheme-full
+                  ];
+                };
+
+              }
+              ''
+                mkdir -p $out
+                pandoc -o $out/${name}-report.pdf ${./${name}/report.md}
+              '';
+
+            lab-reports = with pkgs.lib builtins;
+              mapAttrs (name: _: build-report name)
+                (filterAttrs
+                  (name: type: type == "directory" && hasPrefix "lab" name)
+                  (readDir "${./.}"));
+          in
+          {
+            default = pkgs.symlinkJoin {
+              name = "reports";
+              paths = builtins.attrValues lab-reports;
+            };
+
+          } // lab-reports;
 
       });
 }
