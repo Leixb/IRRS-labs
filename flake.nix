@@ -128,14 +128,15 @@
                 pandoc -o $out/${name}-report.pdf ${./${name}/report.md}
               '';
 
-            lab-reports = with pkgs.lib builtins;
+            lab-reports = with pkgs.lib; with builtins;
               mapAttrs (name: _: build-report name)
                 (filterAttrs
                   (name: type: type == "directory" && hasPrefix "lab" name)
                   (readDir "${./.}"));
           in
           {
-            default = pkgs.symlinkJoin {
+            default = self.packages.${system}.all;
+            all = pkgs.symlinkJoin {
               name = "reports";
               paths = builtins.attrValues lab-reports;
             };

@@ -1,0 +1,28 @@
+name: "Build documents with nix"
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build_document:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3.0.2
+    - uses: cachix/install-nix-action@v17
+      with:
+        extra_nix_config: |
+          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+    - uses: cachix/cachix-action@v10
+      with:
+        name: leixb-upc-projects
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+        extraPullNames: nix-community
+    - run: nix build -L
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: false
+        files: |
+          result/*.pdf
