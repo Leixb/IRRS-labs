@@ -111,35 +111,58 @@
 
         packages =
           let
+            build-figures = name: pkgs.stdenvNoCC.mkDerivation {
+              name = "${name}-report-figures";
+              src = ./${name};
+              buildInputs = [ py-env pkgs.texlive.combined.scheme-full ];
+              doCheck = false;
+              dontInstall = true;
+              buildPhase = ''
+                python3 process.py --output $out/figures --format=pdf
+              '';
+            };
+
             build-report = name: pkgs.runCommandWith
               {
                 name = "${name}-report";
 
                 derivationArgs = {
+                  src = ./${name}/report.md;
+
                   buildInputs = with pkgs; [
                     pandoc
                     texlive.combined.scheme-full
+                    bash
                   ];
-                };
 
+                  FIGURES = build-figures name;
+                };
               }
               ''
                 mkdir -p $out
-                pandoc -o $out/${name}-report.pdf ${./${name}/report.md}
+                pandoc -o "$out/$name.pdf" $src --resource-path=$FIGURES
               '';
 
-            lab-reports = with pkgs.lib; with builtins;
-              mapAttrs (name: _: build-report name)
-                (filterAttrs
-                  (name: type: type == "directory" && hasPrefix "lab" name)
-                  (readDir "${./.}"));
+            lab-list = with pkgs.lib; filterAttrs
+              (name: type: type == "directory" && hasPrefix "lab" name)
+              (builtins.readDir "${./.}");
+
+            map-lab = fn: builtins.mapAttrs (name: _: fn name) lab-list;
+
+            lab-reports = map-lab build-report;
+            lab-figures = map-lab build-figures;
           in
           {
             default = self.packages.${system}.all;
+
             all = pkgs.symlinkJoin {
               name = "reports";
               paths = builtins.attrValues lab-reports;
             };
+
+            all-figures = pkgs.linkFarmFromDrvs
+              "reports-figures"
+              (builtins.attrValues lab-figures);
 
           } // lab-reports;
 

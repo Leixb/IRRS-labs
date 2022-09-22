@@ -7,3 +7,6 @@ author:
 geometry: margin=1in,a4paper
 fontsize: 12pt
 ---
+
+![Zipf](./figures/zipf.pdf)
+![Zipf log-log](./figures/zipf_loglog.pdf)
