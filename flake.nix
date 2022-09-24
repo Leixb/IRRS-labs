@@ -113,60 +113,94 @@
         packages =
           let
             build-figures = name: pkgs.stdenvNoCC.mkDerivation {
-              name = "${name}-report-figures";
-              src = ./${name};
+              name = "${name}-figures";
+              src = nix-filter.filter {
+                root = ./${name};
+                exclude = [
+                  ".gitignore"
+                  ".envrc"
+                  "assignment.pdf"
+                ];
+              };
               buildInputs = [ py-env pkgs.texlive.combined.scheme-full ];
               doCheck = false;
               dontInstall = true;
               buildPhase = ''
                 python3 process.py --output $out --format=pdf
+                cp images/* $out || true
               '';
             };
 
-            build-report = name: pkgs.runCommandWith
+            build-report = name: pkgs.runCommand "${name}-report"
               {
-                name = "${name}-report";
+                src = ./${name}/report.md;
 
-                derivationArgs = {
-                  src = ./${name}/report.md;
-
-                  buildInputs = with pkgs; [
-                    pandoc
-                    texlive.combined.scheme-full
-                    bash
-                  ];
-
-                  FIGURES = build-figures name;
-                };
+                buildInputs = with pkgs; [
+                  pandoc
+                  texlive.combined.scheme-full
+                ];
               }
               ''
                 mkdir -p $out
-                ln -s $FIGURES figures
+                ln -s "${build-figures name}" figures
                 pandoc -o "$out/$name.pdf" $src
               '';
 
-            lab-list = with pkgs.lib; filterAttrs
+            lab-list = with pkgs.lib; builtins.attrNames (filterAttrs
               (name: type: type == "directory" && hasPrefix "lab" name)
-              (builtins.readDir "${./.}");
+              (builtins.readDir "${./.}"));
 
-            map-lab = fn: builtins.mapAttrs (name: _: fn name) lab-list;
+            zip-derivation = drv: pkgs.runCommand "${drv.name}-zip"
+              { buildInputs = with pkgs; [ zip ]; }
+              ''
+                mkdir -p $out
+                cd ${drv}
+                zip -r $out/${drv.name}.zip .
+              '';
 
-            lab-reports = map-lab build-report;
-            lab-figures = map-lab build-figures;
+            bundle-deliverable = report: figures: pkgs.runCommand
+              (pkgs.lib.removeSuffix "-report" report.name)
+              { buildInputs = with pkgs; [ outils ]; }
+              ''
+                mkdir -p $out/{figures,src}
+
+                lndir -silent ${report} $out
+                lndir -silent ${figures} $out/figures
+                lndir -silent ${figures.src} $out/src
+
+                ls $out/src/images | xargs basename | xargs -I{} rm -f $out/figures/{}
+                rm $out/src/images
+              '';
+
+            lab-reports = builtins.map build-report lab-list;
+            lab-figures = builtins.map build-figures lab-list;
+            lab-all = pkgs.lib.zipListsWith bundle-deliverable lab-reports lab-figures;
+            lab-deliverables = builtins.map zip-derivation lab-all;
           in
           {
-            default = self.packages.${system}.all;
+            default = self.packages.${system}.reports;
 
-            all = pkgs.symlinkJoin {
+            reports = pkgs.symlinkJoin {
               name = "reports";
-              paths = builtins.attrValues lab-reports;
+              paths = lab-reports;
             };
 
-            all-figures = pkgs.linkFarmFromDrvs
-              "reports-figures"
-              (builtins.attrValues lab-figures);
+            figures = pkgs.linkFarmFromDrvs
+              "figures"
+              lab-figures;
 
-          } // lab-reports;
+            deliverables = pkgs.symlinkJoin {
+              name = "deliverables";
+              paths = lab-deliverables;
+            };
 
+            labs = pkgs.symlinkJoin {
+              name = "labs";
+              paths = lab-all;
+            };
+
+          } // (with builtins; listToAttrs (
+            map (drv: pkgs.lib.nameValuePair drv.name drv)
+              (concatLists [ lab-reports lab-figures lab-deliverables lab-all ])));
       });
 }
