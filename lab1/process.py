@@ -5,5 +5,5 @@ import ZipfPlots
 
 if __name__ == "__main__":
     output_dir = "./figures"
-    ZipfPlots.main("data.txt", output_dir, format="pdf")
+    ZipfPlots.main("./results/zipf.csv", output_dir, format="pdf")
     HeapsPlots.main("./results/heaps.csv", output_dir)
