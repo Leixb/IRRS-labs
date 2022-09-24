@@ -92,6 +92,7 @@
               pkgs.nixpkgs-fmt
               pkgs.pandoc
               pkgs.texlive.combined.scheme-full
+              pkgs.parallel
             ];
 
             inherit (self.checks.${system}.pre-commit-check) shellHook;
