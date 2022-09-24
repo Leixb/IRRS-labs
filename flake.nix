@@ -119,7 +119,7 @@
               doCheck = false;
               dontInstall = true;
               buildPhase = ''
-                python3 process.py --output $out/figures --format=pdf
+                python3 process.py --output $out --format=pdf
               '';
             };
 
@@ -141,7 +141,8 @@
               }
               ''
                 mkdir -p $out
-                pandoc -o "$out/$name.pdf" $src --resource-path=$FIGURES
+                ln -s $FIGURES figures
+                pandoc -o "$out/$name.pdf" $src
               '';
 
             lab-list = with pkgs.lib; filterAttrs

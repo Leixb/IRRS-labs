@@ -91,9 +91,10 @@ def generate_plots(
     plt.savefig(destination.joinpath(f"zipf_loglog.{format}"), **save_args)
 
 
-def main(input: str, output: str, format: str = "png", skip: int = 0) -> None:
-    with open(input, "r") as file:
-        data = filter_sort_and_rank(parse_file(file))
+def main(input, output: str, format: str = "png", skip: int = 0) -> None:
+    if type(input) is str:
+        input = pathlib.Path(input).read_text().splitlines()
+    data = filter_sort_and_rank(parse_file(input))
 
     print(data[:10])
 
