@@ -126,8 +126,9 @@
               doCheck = false;
               dontInstall = true;
               buildPhase = ''
-                python3 process.py --output $out --format=pdf
-                cp images/* $out || true
+                python3 process.py --output $out/figures --format=pdf
+                cp -r tables $out || true
+                cp -r images $out || true
               '';
             };
 
@@ -138,11 +139,12 @@
                 buildInputs = with pkgs; [
                   pandoc
                   texlive.combined.scheme-full
+                  outils
                 ];
               }
               ''
                 mkdir -p $out
-                ln -s "${build-figures name}" figures
+                lndir -silent "${build-figures name}" .
                 pandoc -o "$out/$name.pdf" $src
               '';
 
@@ -162,14 +164,11 @@
               (pkgs.lib.removeSuffix "-report" report.name)
               { buildInputs = with pkgs; [ outils ]; }
               ''
-                mkdir -p $out/{figures,src}
+                mkdir -p $out/{extras,src}
 
                 lndir -silent ${report} $out
-                lndir -silent ${figures} $out/figures
+                lndir -silent ${figures} $out/extras
                 lndir -silent ${figures.src} $out/src
-
-                ls $out/src/images | xargs basename | xargs -I{} rm -f $out/figures/{}
-                rm $out/src/images
               '';
 
             lab-reports = builtins.map build-report lab-list;

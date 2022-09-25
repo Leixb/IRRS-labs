@@ -207,5 +207,5 @@ common, while in the latter it is not.
 }
 \end{table}
 
-\includepdf[pages=-,fitpaper]{heaps.pdf}
+\includepdf[pages=-,fitpaper]{figures/heaps.pdf}
 
