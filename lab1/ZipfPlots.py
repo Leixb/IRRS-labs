@@ -132,7 +132,7 @@ def main(input, output: str, format: str = "png", skip: int = 10) -> None:
     )
     print(popt)
 
-    generate_plots(data, f_fit, popt, "ZipF naïve", format, output)
+    generate_plots(data, f_fit, popt, "Zipf naïve", format, output)
 
     popt, _, f_fit = fit_curve(
         f,
@@ -144,7 +144,7 @@ def main(input, output: str, format: str = "png", skip: int = 10) -> None:
 
     plt.clf()
 
-    generate_plots(data, f_fit, popt, "ZipF bounded", format, output)
+    generate_plots(data, f_fit, popt, "Zipf bounded", format, output)
 
     popt, _, f_fit = fit_curve(
         f,
@@ -156,7 +156,7 @@ def main(input, output: str, format: str = "png", skip: int = 10) -> None:
 
     plt.clf()
 
-    generate_plots(data, f_fit, popt, f"ZipF bounded + skip {skip}", format, output)
+    generate_plots(data, f_fit, popt, f"Zipf bounded + skip {skip}", format, output)
 
 
 if __name__ == "__main__":

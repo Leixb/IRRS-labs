@@ -235,7 +235,9 @@ def main(
             fit_data.loc[len(fit_data)] = fit_info
 
     # Save fit data to a LaTeX table
-    fit_data.style.to_latex(tables_dir.joinpath("heaps.tex"))
+    fit_data[["file", "k", "beta", "N", "R2", "RMSE"]].set_index("file").style.format(
+        precision=3
+    ).to_latex(tables_dir.joinpath("heaps.tex"), hrules=True, siunitx=True)
 
     fig = plot_fit_data(fit_data)
     fig.savefig(output_dir.joinpath("heaps_all.pdf"), **save_args)
