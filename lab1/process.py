@@ -18,7 +18,7 @@ if __name__ == "__main__":
     )
     arg_parser.add_argument("--format", type=str, default="png", choices=["png", "pdf"])
     arg_parser.add_argument(
-        "--skip", type=int, default=0, help="Skip first n words when computing fit"
+        "--skip", type=int, default=10, help="Skip first n words when computing fit"
     )
     arg_parser.add_argument(
         "--output", type=str, default="figures", help="Output folder for plots"

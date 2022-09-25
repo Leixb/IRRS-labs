@@ -14,39 +14,14 @@ import numpy.lib.recfunctions as rfn
 import numpy.typing as npt
 import pandas as pd
 import seaborn as sns
+from common import R2, RMSE, fit_curve, set_theme
 from cycler import cycler
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.optimize import curve_fit
 
 
-def fit_curve(
-    f: Callable[..., float], x: npt.NDArray, y: npt.NDArray, **kwargs
-) -> Tuple[float, float, Callable[[npt.NDArray], float]]:
-    popt, pcov = curve_fit(
-        f,
-        x,
-        y,
-        **kwargs,
-    )
-    f_fit = np.vectorize(lambda rank: f(rank, *popt))
-
-    return popt, pcov, f_fit
-
-
 def f(words: int, k: float, beta: float) -> float:
     return k * np.power(words, beta)
-
-
-def R2(y: npt.NDArray, y_fit: npt.NDArray) -> float:
-    y_mean = np.mean(y)
-    ss_tot = np.sum(np.power(y - y_mean, 2))
-    ss_res = np.sum(np.power(y - y_fit, 2))
-
-    return 1 - ss_res / ss_tot
-
-
-def RMSE(y: npt.NDArray, y_fit: npt.NDArray) -> float:
-    return np.sqrt(np.mean(np.power(y - y_fit, 2)))
 
 
 def fit_and_plot_novel(
@@ -223,16 +198,7 @@ def main(
 ):
 
     # Nice looking seaborn plots for latex documents
-    sns.set_theme(
-        context="paper",
-        style="whitegrid",
-        font_scale=1.5,
-        font="STIXGeneral",
-        rc={
-            "text.usetex": True,
-        },
-    )
-    save_args = {"dpi": 300}
+    save_args = set_theme()
 
     output_dir = pathlib.Path(output_dir)
     tables_dir = pathlib.Path(tables_dir)

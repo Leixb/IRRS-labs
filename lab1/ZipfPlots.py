@@ -9,7 +9,8 @@ import numpy as np
 import numpy.lib.recfunctions as rfn
 import numpy.typing as npt
 import seaborn as sns
-from scipy.optimize import curve_fit
+import unidecode
+from common import R2, fit_curve, set_theme
 
 
 def parse_file(file: Iterable[str]) -> Generator[Tuple[int, str], None, None]:
@@ -32,38 +33,16 @@ def filter_sort_and_rank(data: Iterable[Tuple[int, str]]) -> npt.NDArray:
     return rfn.append_fields(data, "rank", np.arange(1, len(data) + 1))
 
 
-def fit_curve(
-    f: Callable[..., float], x: npt.NDArray, y: npt.NDArray, **kwargs
-) -> Tuple[float, float, Callable[[npt.NDArray], float]]:
-    popt, pcov = curve_fit(
-        f,
-        x,
-        y,
-        **kwargs,
-    )
-    f_fit = np.vectorize(lambda rank: f(rank, *popt))
-
-    return popt, pcov, f_fit
-
-
 def generate_plots(
     data: npt.NDArray,
     f_fit: Callable[[npt.NDArray], float],
-    format: str = "png",
+    popt: Tuple[float, float, float],
+    name: str = "zipf",
+    format: str = "pdf",
     folder: str = "figures",
 ) -> None:
     # Set LaTeX font theme for plots using seaborn
-    sns.set_theme(
-        context="paper",
-        style="whitegrid",
-        font_scale=1.5,
-        font="STIXGeneral",
-        rc={
-            "text.usetex": True,
-        },
-    )
-
-    save_args = {"bbox_inches": "tight", "dpi": 300}
+    save_args = set_theme()
 
     # Make sure the output folder exists
     destination = pathlib.Path(folder)
@@ -71,27 +50,72 @@ def generate_plots(
 
     ax = plt.subplot(1, 1, 1)
 
-    plt.plot(data["rank"], data["count"])
-    plt.plot(data["rank"], f_fit(data["rank"]))
+    y_fit = f_fit(data["rank"])
 
-    plt.legend(["Data", "Fit"])
-    plt.xlabel("Rank")
-    plt.ylabel("Frequency")
+    plt.plot(data["rank"], data["count"], label="Data")
+    plt.plot(data["rank"], y_fit, label=name + " fit")
 
-    plt.savefig(destination.joinpath(f"zipf.{format}"), **save_args)
+    r2 = R2(data["count"], y_fit)
+
+    plt.xlabel("Rank ($k$)")
+    plt.ylabel("Frequency ($f$)")
+
+    ax.text(
+        0.05,
+        0.05,
+        "\n".join(
+            (
+                r"$f(k) = c (k + b)^{-a}$",
+                r"$\quad a=%.2f$" % (popt[0],),
+                r"$\quad b=%.2f$" % (popt[1],),
+                r"$\quad c=%d$" % (int(popt[2]),),
+                r"\null",
+                r"$R^2=%.4f$" % (r2,),
+            )
+        ),
+        transform=ax.transAxes,
+        fontsize=14,
+        horizontalalignment="left",
+        verticalalignment="bottom",
+        bbox=dict(
+            boxstyle="round,pad=0.5,rounding_size=0.2",
+            facecolor="white",
+            alpha=0.8,
+            edgecolor="r",
+        ),
+    )
+
+    plt.figtext(
+        0.01,
+        0.01,
+        r" data: \texttt{20 Newsgroups}",
+        ha="left",
+        fontsize=8,
+        color="gray",
+    )
+
+    plt.legend(loc="upper right")
+
+    # normalize name for file
+    name = name.replace(" ", "_").replace("_+_", "_").lower()
+    # remove accents
+    name = unidecode.unidecode(name)
+    plt.savefig(destination.joinpath(f"{name}.{format}"), **save_args)
 
     # Same plot but on a log-log scale
     plt.yscale("log")
     plt.xscale("log")
 
+    plt.subplots_adjust(right=0.95, top=0.95)
+
     # Add minor ticks to emphasize the log-log scale
-    ax.grid(visible=True, which="minor", color="whitesmoke")
-    ax.minorticks_on()
+    # ax.grid(visible=True, which="minor", color="whitesmoke")
+    # ax.minorticks_on()
 
-    plt.savefig(destination.joinpath(f"zipf_loglog.{format}"), **save_args)
+    plt.savefig(destination.joinpath(f"{name}_loglog.{format}"), **save_args)
 
 
-def main(input, output: str, format: str = "png", skip: int = 0) -> None:
+def main(input, output: str, format: str = "png", skip: int = 10) -> None:
     if type(input) is str:
         input = pathlib.Path(input).read_text().splitlines()
     data = filter_sort_and_rank(parse_file(input))
@@ -105,22 +129,44 @@ def main(input, output: str, format: str = "png", skip: int = 0) -> None:
         f,
         data["rank"],
         data["count"],
-        p0=(1.0, 1.0, 1.0),
-        bounds=([0.0, 0.0, 0.0], [np.inf, np.inf, np.inf]),
     )
     print(popt)
 
-    generate_plots(data, f_fit, format, output)
+    generate_plots(data, f_fit, popt, "ZipF naïve", format, output)
+
+    popt, _, f_fit = fit_curve(
+        f,
+        data["rank"],
+        data["count"],
+        p0=(1.0, 1.0, 1.0),
+        bounds=([0.0, 0.0, 0.0], [np.inf, np.inf, np.inf]),
+    )
+
+    plt.clf()
+
+    generate_plots(data, f_fit, popt, "ZipF bounded", format, output)
+
+    popt, _, f_fit = fit_curve(
+        f,
+        data["rank"][skip:],
+        data["count"][skip:],
+        p0=(1.0, 1.0, 1.0),
+        bounds=([0.0, 0.0, 0.0], [np.inf, np.inf, np.inf]),
+    )
+
+    plt.clf()
+
+    generate_plots(data, f_fit, popt, f"ZipF bounded + skip {skip}", format, output)
 
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument(
-        "-i", "--input", type=argparse.FileType("r"), default="data.txt"
+        "-i", "--input", type=argparse.FileType("r"), default="results/zipf.csv"
     )
-    arg_parser.add_argument("--format", type=str, default="png", choices=["png", "pdf"])
+    arg_parser.add_argument("--format", type=str, default="pdf", choices=["png", "pdf"])
     arg_parser.add_argument(
-        "--skip", type=int, default=0, help="Skip first n words when computing fit"
+        "--skip", type=int, default=10, help="Skip first n words when computing fit"
     )
     arg_parser.add_argument(
         "--output", type=str, default="figures", help="Output folder for plots"
