@@ -126,8 +126,9 @@
               doCheck = false;
               dontInstall = true;
               buildPhase = ''
-                python3 process.py --output $out --format=pdf
-                cp images/* $out || true
+                python3 process.py --output $out/figures --format=pdf
+                cp -r tables $out || true
+                cp images/* $out/figures || true
               '';
             };
 
@@ -138,11 +139,12 @@
                 buildInputs = with pkgs; [
                   pandoc
                   texlive.combined.scheme-full
+                  outils
                 ];
               }
               ''
                 mkdir -p $out
-                ln -s "${build-figures name}" figures
+                lndir -silent "${build-figures name}" .
                 pandoc -o "$out/$name.pdf" $src
               '';
 
