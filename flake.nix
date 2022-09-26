@@ -170,6 +170,10 @@
                 lndir -silent ${report} $out
                 lndir -silent ${figures} $out/extras
                 lndir -silent ${figures.src} $out/src
+
+                # Remove support images (e.g. UPC logo)
+                unlink $out/src/images || true
+                unlink $out/extras/images || true
               '';
 
             lab-reports = builtins.map build-report lab-list;
