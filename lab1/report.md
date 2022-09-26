@@ -1,6 +1,6 @@
 ---
 title: |
-    ![](./images/logo-upc-fib.pdf)
+    \includegraphics[width=\linewidth]{./images/logo-upc-fib.pdf}\vspace{2em}
     ElasticSearch and Zipf's and Heaps' laws
 subtitle: Information Retrieval and Recommender systems
 author:
@@ -60,7 +60,7 @@ previously indexed and filtered. In particular, we want to see if the
 following law holds:
 
 \begin{equation}\label{eq:zipf}
-    f = c*(rank+b)^{-a}
+    f = c\cdot(rank+b)^{-a}
 \end{equation}
 
 For this purpose, the parameters $a$, $b$ and $c$ of the equation must be
@@ -173,7 +173,7 @@ rate.
 
 \begin{figure}[H]
 \includegraphics[page=6]{figures/heaps}
-\caption{Kipling}
+\caption{Herdan-Heaps results obtained for Kipling's \emph{Jungle Book}}
 \label{fig:kipling}
 \end{figure}
 
@@ -185,7 +185,7 @@ Nonetheless, all the values fit inside the expected range for English
 for Heaps law: $0.4 < \beta < 0.6$ and $10 < k < 100$ (except the aforementioned
 novel by Jusserand), we can conclude that Heaps' law holds for our data.
 
-![Heaps](figures/heaps_all.pdf){#fig:heaps_all}
+![Joint plot of all the fitted curves](figures/heaps_all.pdf){#fig:heaps_all}
 
 Interestingly, for some similarly short novels, the legal terms where
 not noticeable, probably because they talked of the setting of the novel.

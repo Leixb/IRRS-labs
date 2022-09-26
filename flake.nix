@@ -119,6 +119,7 @@
                 exclude = [
                   ".gitignore"
                   ".envrc"
+                  "report.md"
                   "assignment.pdf"
                 ];
               };
