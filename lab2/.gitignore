@@ -1,0 +1,7 @@
+data
+*.txt
+figures/*
+*.pdf
+!assignment.pdf
+!images/*.pdf
+tables/
