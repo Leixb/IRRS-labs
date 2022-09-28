@@ -144,8 +144,10 @@
                 ];
               }
               ''
-                mkdir -p $out
-                lndir -silent "${build-figures name}" .
+                mkdir -p build $out
+                lndir -silent "${build-figures name}" build
+                ln -s "${./common}" common
+                cd build
                 pandoc -o "$out/$name.pdf" $src
               '';
 
@@ -170,10 +172,6 @@
                 lndir -silent ${report} $out
                 lndir -silent ${figures} $out/extras
                 lndir -silent ${figures.src} $out/src
-
-                # Remove support images (e.g. UPC logo)
-                unlink $out/src/images || true
-                unlink $out/extras/images || true
               '';
 
             lab-reports = builtins.map build-report lab-list;

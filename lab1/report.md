@@ -1,6 +1,6 @@
 ---
 title: |
-    \includegraphics[width=\linewidth]{./images/logo-upc-fib.pdf}\vspace{2em}
+    \includegraphics[width=\linewidth]{../common/logo-upc-fib.pdf}\vspace{2em}
     ElasticSearch and Zipf's and Heaps' laws
 subtitle: Information Retrieval and Recommender systems
 author:
