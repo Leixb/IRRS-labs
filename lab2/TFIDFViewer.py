@@ -40,13 +40,14 @@ def search_file_by_path(client, index, path):
     s = Search(using=client, index=index)
     q = Q("match", path=path)  # exact search in the path field
     s = s.query(q)
-    result = s.execute()
+    result = s.scan()
 
-    lfiles = [r for r in result]
-    if len(lfiles) == 0:
+    try:
+        first = next(result)
+    except StopIteration:
         raise NameError(f"File [{path}] not found")
-    else:
-        return lfiles[0].meta.id
+
+    return first.meta.id
 
 
 def document_term_vector(client, index, id):
@@ -68,9 +69,9 @@ def document_term_vector(client, index, id):
     file_df = {}
 
     if "text" in termvector["term_vectors"]:
-        for t in termvector["term_vectors"]["text"]["terms"]:
-            file_td[t] = termvector["term_vectors"]["text"]["terms"][t]["term_freq"]
-            file_df[t] = termvector["term_vectors"]["text"]["terms"][t]["doc_freq"]
+        for t, data in termvector["term_vectors"]["text"]["terms"].items():
+            file_td[t] = data["term_freq"]
+            file_df[t] = data["doc_freq"]
     return sorted(file_td.items()), sorted(file_df.items())
 
 
@@ -86,30 +87,26 @@ def toTFIDF(client, index, file_id):
     # that contain the term
     file_tv, file_df = document_term_vector(client, index, file_id)
 
-    max_freq = max([f for _, f in file_tv])
+    max_freq = max(file_tv, key=lambda x: x[1])[1]
 
     dcount = doc_count(client, index)
 
     tfidfw = []
     for (t, w), (_, df) in zip(file_tv, file_df):
-        #
-        # Something happens here
-        #
-        pass
+        tf = w / max_freq
+        idf = np.log(dcount / df)
+        tfidfw.append((t, tf * idf))
 
     return normalize(tfidfw)
 
 
 def print_term_weigth_vector(twv):
     """
-    Prints the term vector and the correspondig weights
+    Prints the term vector and the corresponding weights
     :param twv:
     :return:
     """
-    #
-    # Program something here
-    #
-    pass
+    print(twv)
 
 
 def normalize(tw):
@@ -119,10 +116,9 @@ def normalize(tw):
     :param tw:
     :return:
     """
-    #
-    # Program something here
-    #
-    return None
+    t, w = zip(*tw)
+
+    return zip(t, w / np.linalg.norm(w))
 
 
 def cosine_similarity(tw1, tw2):
@@ -132,10 +128,25 @@ def cosine_similarity(tw1, tw2):
     :param tw2:
     :return:
     """
-    #
-    # Program something here
-    #
-    return 0
+
+    tw1, tw2 = iter(tw1), iter(tw2)
+    sim = 0
+
+    try:
+        t1, w1 = next(tw1)
+        t2, w2 = next(tw2)
+
+        while True:
+            if t1 == t2:
+                sim += w1 * w2
+                t1, w1 = next(tw1)
+                t2, w2 = next(tw2)
+            elif t1 < t2:
+                t1, w1 = next(tw1)
+            else:
+                t2, w2 = next(tw2)
+    except StopIteration:
+        return sim
 
 
 def doc_count(client, index):
