@@ -25,6 +25,36 @@
       let
         pkgs = import nixpkgs { inherit system; };
 
+        lab1-data =
+          let
+            novels = pkgs.fetchzip {
+              url = "www.cs.upc.edu/~caim/lab/novels.zip";
+              sha256 = "1wz8cjp6320wn7hpdm8x2w578qkka6jagjanlxdql7lr6sl4vwy5";
+            };
+
+            arxiv_abs = pkgs.fetchzip {
+              url = "www.cs.upc.edu/~caim/lab/arxiv_abs.zip";
+              stripRoot = false;
+              sha256 = "sha256-JoWwuKaI29iO0eQEQhFsmv0ZsgwWWgPia3RqthRg9uU=";
+            };
+
+            # For newsgroups we do not use fetchzip since it has too many files
+            # for nix to handle the recursive hash
+            newsgroups = pkgs.fetchurl {
+              url = "www.cs.upc.edu/~caim/lab/20_newsgroups.zip";
+              sha256 = "sha256-w0xDJZ8d9J+k6DYzh/SEIbIODZphfW5q1xR+rl1QFP8=";
+            };
+          in
+          pkgs.runCommand "lab1-data"
+            {
+              buildInputs = [ pkgs.unzip ];
+            } ''
+            mkdir -p $out
+            ln -s ${novels} $out/novels
+            ln -s ${arxiv_abs} $out/arxiv_abs
+            unzip ${newsgroups} -d $out
+          '';
+
         NLTK_DATA =
           let
             collection = "all";
@@ -85,6 +115,7 @@
             name = "python-poetry";
 
             inherit NLTK_DATA;
+            DATA = lab1-data;
 
             buildInputs = [
               python.pkgs.poetry

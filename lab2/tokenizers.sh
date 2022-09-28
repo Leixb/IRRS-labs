@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
 
-set -e
+set -eo pipefail
 
 TOKENS=(whitespace classic standard letter)
 
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <input folder> [tokenizer1] [tokenizer2] ..."
+DATA="${DATA:-./data}"
+FOLDER="$1"
+
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <folder> [tokenizer1] [tokenizer2] ..." >&2
+    FOLDER="${DATA}/novels"
+    echo "Using default folder: $FOLDER"
+fi
+
+if [ ! -d "$FOLDER" ]; then
+    echo "Folder $FOLDER does not exist" >&2
     exit 1
 fi
 
-FOLDER="$1"
-shift
+shift || true
 
 if [ $# -ne 0 ]; then
     TOKENS=("$@")

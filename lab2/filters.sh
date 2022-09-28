@@ -5,22 +5,29 @@
 #
 # It tries all the possible combinations
 
-set -e
+set -eo pipefail
 
 FILTERS=(lowercase asciifolding stop porter_stem kstem snowball)
 TOKEN=${TOKEN:-standard}
 
+DATA="${DATA:-./data}"
+FOLDER="$1"
+
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 <folder> [filter1 filter2 ...]"
+    echo "Usage: $0 <folder> [filter1 filter2 ...]" >&2
+    FOLDER="${DATA}/20_newsgroups"
+    echo "Using default folder: $FOLDER"
+fi
+
+if [ ! -d "$FOLDER" ]; then
+    echo "Folder $FOLDER does not exist" >&2
     exit 1
 fi
 
 # Number of top terms to show
 N=${N:-10}
 
-FOLDER="$1"
-
-shift
+shift || true
 
 if [ $# -gt 0 ]; then
     FILTERS=("$@")

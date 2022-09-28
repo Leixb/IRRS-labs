@@ -14,8 +14,14 @@ set -eo pipefail
 
 SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-INPUT="${1:-${SCRIPT_DIR}/data/novels}"
+DATA="${DATA:-${SCRIPT_DIR}/data}"
+INPUT="${1:-${DATA}/novels}"
 INPUT="$(realpath "$INPUT")"
+
+if [ ! -d "${INPUT}" ]; then
+    echo "Input folder does not exist: ${INPUT}" >&2
+    exit 1
+fi
 
 N="${2:-50}"
 

@@ -1,5 +1,6 @@
+Using default folder: /nix/store/120lhslwqkz30cs5vasw2l8fy8dk6if8-lab1-data/novels
 collection,token,words
-novels,whitespace,86183
-novels,classic,35173
-novels,standard,41532
-novels,letter,32426
+novels,whitespace,97404
+novels,classic,34988
+novels,standard,39039
+novels,letter,35618
