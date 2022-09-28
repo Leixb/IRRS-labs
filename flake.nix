@@ -196,10 +196,9 @@
               paths = lab-deliverables;
             };
 
-            labs = pkgs.symlinkJoin {
-              name = "labs";
-              paths = lab-all;
-            };
+            labs = pkgs.linkFarmFromDrvs
+              "labs"
+              lab-all;
 
           } // (with builtins; listToAttrs (
             map (drv: pkgs.lib.nameValuePair drv.name drv)
