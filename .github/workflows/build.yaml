@@ -1,4 +1,4 @@
-name: "Build documents with nix"
+name: "build delivarables"
 on:
   push:
     tags:
