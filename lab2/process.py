@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Auxilary script to build figures and plots for the report
+# Auxiliary script to build figures and plots for the report
 # This should only rely on the resources available in the repository
 # so that figures can be reproduced with nix
 
