@@ -7,19 +7,14 @@ license = "GPL3"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.11"
-nltk = "^3.7"
 matplotlib = "^3.5.3"
 pandas = "^1.5.0"
-elasticsearch-dsl = "^7.4.0"
-elasticsearch = "<8.0.0"
 seaborn = "^0.12.0"
 numpy = "^1.23.3"
-Cython = "^0.29.32"
 scipy = "<1.9"
 nbformat = "<5.6.0"
-Unidecode = "^1.3.4"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 python-lsp-server = {extras = ["all"], version = "^1.5.0"}
 pylsp-mypy = "^0.6.2"
 pyls-isort = "^0.2.2"
@@ -31,6 +26,18 @@ ipython = "^8.5.0"
 pandas-stubs = "^1.4.4"
 elasticsearch-stubs = "^0"
 notebook = "^6.4.12"
+
+[tool.poetry.group.lab1.dependencies]
+elasticsearch-dsl = "^7.4.0"
+elasticsearch = "<8.0.0"
+Unidecode = "^1.3.4"
+
+[tool.poetry.group.lab2.dependencies]
+elasticsearch-dsl = "^7.4.0"
+elasticsearch = "<8.0.0"
+
+[tool.poetry.group.lab3.dependencies]
+nltk = "^3.7"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

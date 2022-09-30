@@ -12,6 +12,12 @@
       inputs.flake-utils.follows = "flake-utils";
     };
 
+    poetry2nixFlake = {
+      url = "github:nix-community/poetry2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
+
     nltk_data_src = {
       url = "github:nltk/nltk_data";
       flake = false;
@@ -23,7 +29,10 @@
 
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ inputs.poetry2nixFlake.overlay ];
+        };
 
         lab1-data =
           let
@@ -94,8 +103,12 @@
 
         nix-filter = inputs.nix-filter.lib;
 
-        py-env = pkgs.poetry2nix.mkPoetryEnv {
-          inherit python overrides;
+        lab-list = with pkgs.lib; builtins.attrNames (filterAttrs
+          (name: type: type == "directory" && hasPrefix "lab" name)
+          (builtins.readDir "${./.}"));
+
+        py-env = { groups ? [ ] }: pkgs.poetry2nix.mkPoetryEnv {
+          inherit python overrides groups;
 
           projectDir = nix-filter.filter {
             root = ./.;
@@ -104,8 +117,6 @@
               "pyproject.toml"
             ];
           };
-
-          editablePackageSources = { };
         };
 
       in
@@ -118,8 +129,8 @@
             DATA = lab1-data;
 
             buildInputs = [
-              python.pkgs.poetry
-              py-env
+              pkgs.poetry
+              (py-env { groups = [ "dev" ] ++ lab-list; })
               pkgs.nixpkgs-fmt
               pkgs.pandoc
               pkgs.texlive.combined.scheme-full
@@ -154,7 +165,7 @@
                   "assignment.pdf"
                 ];
               };
-              buildInputs = [ py-env pkgs.texlive.combined.scheme-full ];
+              buildInputs = [ (py-env { groups = [ name ]; }) pkgs.texlive.combined.scheme-full ];
               doCheck = false;
               dontInstall = true;
               buildPhase = ''
@@ -182,10 +193,6 @@
                 pandoc -o "$out/$name.pdf" $src
               '';
 
-            lab-list = with pkgs.lib; builtins.attrNames (filterAttrs
-              (name: type: type == "directory" && hasPrefix "lab" name)
-              (builtins.readDir "${./.}"));
-
             zip-derivation = drv: pkgs.runCommand "${drv.name}-zip"
               { buildInputs = with pkgs; [ zip ]; }
               ''
@@ -203,6 +210,9 @@
                 lndir -silent ${report} $out
                 lndir -silent ${figures} $out/extras
                 lndir -silent ${figures.src} $out/src
+
+                ln -s ${./poetry.lock} $out/src/poetry.lock
+                ln -s ${./pyproject.toml} $out/src/pyproject.toml
               '';
 
             lab-reports = builtins.map build-report lab-list;
