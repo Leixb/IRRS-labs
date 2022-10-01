@@ -10,7 +10,7 @@ FOLDER="$1"
 if [ $# -eq 0 ]; then
     echo "Usage: $0 <folder> [tokenizer1] [tokenizer2] ..." >&2
     FOLDER="${DATA}/novels"
-    echo "Using default folder: $FOLDER"
+    echo "Using default folder: $FOLDER" >&2
 fi
 
 if [ ! -d "$FOLDER" ]; then
