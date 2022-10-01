@@ -78,33 +78,15 @@
             unzip ${newsgroups} -d $out
           '';
 
-        NLTK_DATA =
-          let
-            collection = "all";
-          in
-          pkgs.stdenvNoCC.mkDerivation rec {
-            pname = "nltk_data";
-            version = nltk_data_src.rev;
-
+        NLTK_DATA = pkgs.runCommand "nltk_data"
+          {
+            buildInputs = with pkgs; [ python2 unzip ];
             src = nltk_data_src;
-
-            dontConfigure = true;
-            dontBuild = true;
-            dontFixup = true;
-
-            nativeBuildInputs = with pkgs; [ python2 unzip ];
-
-            # Despite the name, download.sh does not download anything from the
-            # internet
-            installPhase = ''
-              runHook preInstall
-
-              export NLTK_DATA_DIR=$out
-              bash tools/download.sh "${collection}"
-
-              runHook postInstall
-            '';
-          };
+            COLLECTION = "all";
+          }
+          ''
+            NLTK_DATA_DIR=$out bash $src/tools/download.sh "$COLLECTION"
+          '';
 
         py-env = { groups ? [ ] }: pkgs.poetry2nix.mkPoetryEnv {
           inherit python overrides groups;
