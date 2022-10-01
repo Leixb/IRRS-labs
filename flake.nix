@@ -108,14 +108,8 @@
 
         py-env = { groups ? [ ] }: pkgs.poetry2nix.mkPoetryEnv {
           inherit python overrides groups;
-
-          projectDir = nix-filter.filter {
-            root = ./.;
-            include = [
-              "poetry.lock"
-              "pyproject.toml"
-            ];
-          };
+          pyproject = ./pyproject.toml;
+          poetrylock = ./poetry.lock;
         };
 
         lab-list = with pkgs.lib; builtins.attrNames (filterAttrs
