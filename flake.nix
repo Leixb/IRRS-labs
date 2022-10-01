@@ -238,28 +238,39 @@
 
           } // derivations;
 
-        devShells = {
-          default = pkgs.mkShellNoCC {
-            name = "python-poetry";
+        devShells =
+          let
+            build-shell =
+              { name
+              , groups ? [ "dev" name ]
+              }: pkgs.mkShellNoCC {
+                name = "python-poetry-${name}";
 
-            inherit NLTK_DATA;
-            DATA = lab1-data;
+                inherit NLTK_DATA;
+                DATA = lab1-data;
 
-            buildInputs =
-              let
-                python-env = py-env { groups = [ "dev" ] ++ lab-list; };
-              in
-              with pkgs;[
-                poetry
-                python-env
-                nixpkgs-fmt
-                pandoc
-                texlive.combined.scheme-full
-                parallel
-              ];
+                buildInputs =
+                  let
+                    python-env = py-env { inherit groups; };
+                  in
+                  with pkgs;[
+                    poetry
+                    python-env
+                    nixpkgs-fmt
+                    pandoc
+                    texlive.combined.scheme-full
+                    parallel
+                  ];
 
-            inherit (self.checks.${system}.pre-commit-check) shellHook;
-          };
-        };
+                inherit (self.checks.${system}.pre-commit-check) shellHook;
+              };
+
+            shells = with builtins; listToAttrs (map (name: pkgs.lib.nameValuePair name (build-shell { inherit name; })) lab-list);
+
+          in
+          {
+            default = self.devShells.${system}.all;
+            all = build-shell { name = "all"; groups = [ "dev" ] ++ lab-list; };
+          } // shells;
       });
 }
