@@ -38,12 +38,12 @@ echo "Using filters: ${FILTERS[*]}" >&2
 combinations() {
     # print all possible combinations of the values given
     # using bitwise operations
-    local values=("$@")
-    local n=${#values[@]}
-    local bits=$((1<<n))
-    for i in $(seq 0 $((bits-1))); do
-        for j in $(seq 0 $((n-1))); do
-            if [ $((i & (1<<j))) -ne 0 ]; then
+    local -r values=("$@")
+    local -r n="${#values[@]}"
+    local -r bits="$((1 << n))"
+    for i in $(seq 0 "$((bits - 1))"); do
+        for j in $(seq 0 "$((n - 1))"); do
+            if [ $((i & (1 << j))) -ne 0 ]; then
                 echo -n "${values[j]} "
             fi
         done
@@ -65,9 +65,9 @@ extract_top() {
     filters_join="${filters_join// /,}"
     index_name="$(basename "$FOLDER");${filters_join}"
     index_name="${index_name//,/-}"
-    ./IndexFilesPreprocess.py --index "$index_name" --path  "$FOLDER" --token "$TOKEN" --filter "${filter[@]}" >/dev/null 2>/dev/null
-    ./CountWords.py --index "$index_name" | \
-        tail -n $((N+2)) | \
+    ./IndexFilesPreprocess.py --index "$index_name" --path "$FOLDER" --token "$TOKEN" --filter "${filter[@]}" >/dev/null 2>/dev/null
+    ./CountWords.py --index "$index_name" |
+        tail -n $((N + 2)) |
         awk -v N="$N" -F',? ' 'BEGIN {ORS=";"} NR <= N { print $1 ";" $2 } END { print $1 }'
     echo "$index_name"
 }

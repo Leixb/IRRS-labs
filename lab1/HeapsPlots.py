@@ -14,10 +14,11 @@ import numpy.lib.recfunctions as rfn
 import numpy.typing as npt
 import pandas as pd
 import seaborn as sns
-from common import R2, RMSE, fit_curve, set_theme
 from cycler import cycler
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.optimize import curve_fit
+
+from common import R2, RMSE, fit_curve, set_theme
 
 
 def f(words: int, k: float, beta: float) -> float:

@@ -10,6 +10,7 @@ import numpy.lib.recfunctions as rfn
 import numpy.typing as npt
 import seaborn as sns
 import unidecode
+
 from common import R2, fit_curve, set_theme
 
 
