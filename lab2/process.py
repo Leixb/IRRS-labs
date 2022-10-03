@@ -5,17 +5,16 @@
 # so that figures can be reproduced with nix
 
 import argparse
-import os
+
+import plotsFirstPart
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument("--format", type=str, default="png", choices=["png", "pdf"])
+    arg_parser.add_argument("--format", type=str, default="pdf", choices=["png", "pdf"])
     arg_parser.add_argument(
         "--output", type=str, default="figures", help="Output folder for plots"
     )
 
     args = arg_parser.parse_args()
 
-    print("Hello World")
-
-    os.makedirs(args.output, exist_ok=True)
+    plotsFirstPart.main(output_dir=args.output, format=args.format)
