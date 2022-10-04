@@ -85,7 +85,7 @@ def plot_filters(df: pd.DataFrame) -> plt.Figure:
     dd["filters"] = dd["filters"].apply(colorize)
 
     fig, ax = plt.subplots()
-    plt.rc("axes", prop_cycle=cycler("color", ["r", "g"]))
+    ax.set_prop_cycle(cycler("color", ["r", "g"]))
     sns.barplot(x="unique", y="filters", hue="lowercase", data=dd, alpha=0.8)
 
     plt.xlabel("Unique Words")
