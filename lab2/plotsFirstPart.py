@@ -77,7 +77,7 @@ def colorize(x):
 def plot_filters(df: pd.DataFrame) -> plt.Figure:
     # take only the ones which contain lowercase in filter column
     # replace nan with empty string
-    dd = df[["filters", "unique"]].fillna("none")
+    dd = df.fillna("none")
     dd["lowercase"] = dd["filters"].str.startswith("lowercase").fillna(False)
     dd["filters"] = dd["filters"].str.removeprefix("lowercase-")
     dd["filters"] = dd["filters"].str.replace("lowercase", "none")
@@ -85,8 +85,9 @@ def plot_filters(df: pd.DataFrame) -> plt.Figure:
     dd["filters"] = dd["filters"].apply(colorize)
 
     fig, ax = plt.subplots()
-    ax.set_prop_cycle(cycler("color", ["r", "g"]))
-    sns.barplot(x="unique", y="filters", hue="lowercase", data=dd, alpha=0.8)
+    sns.barplot(
+        x="unique", y="filters", hue="lowercase", data=dd, alpha=0.8, palette=["r", "g"]
+    )
 
     plt.xlabel("Unique Words")
     plt.ylabel("Filters")
