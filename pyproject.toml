@@ -35,6 +35,7 @@ Unidecode = "^1.3.4"
 [tool.poetry.group.lab2.dependencies]
 elasticsearch-dsl = "^7.4.0"
 elasticsearch = "<8.0.0"
+wordcloud = "^1.8.2.2"
 
 [tool.poetry.group.lab3.dependencies]
 nltk = "^3.7"
