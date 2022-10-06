@@ -34,6 +34,8 @@
           overlays = [ inputs.poetry2nixFlake.overlay ];
         };
 
+        lib = pkgs.lib;
+
         nix-filter = inputs.nix-filter.lib;
         python = pkgs.python3;
 
@@ -95,7 +97,7 @@
           poetrylock = ./poetry.lock;
         };
 
-        lab-list = with pkgs.lib; builtins.attrNames (filterAttrs
+        lab-list = with lib; builtins.attrNames (filterAttrs
           (name: type: type == "directory" && hasPrefix "lab" name)
           (builtins.readDir "${./.}"));
 
@@ -111,7 +113,7 @@
               shfmt.enable = true;
               shellcheck = {
                 enable = true;
-                types_or = pkgs.lib.mkForce [ ];
+                types_or = lib.mkForce [ ];
               };
             };
           };
@@ -119,15 +121,21 @@
 
         packages =
           let
+            SOURCE_DATE_EPOCH = self.lastModified;
             build-figures = name: pkgs.stdenvNoCC.mkDerivation {
               name = "${name}-figures";
+              inherit SOURCE_DATE_EPOCH;
               src = nix-filter.filter {
                 root = ./${name};
                 exclude = [
                   ".gitignore"
                   ".envrc"
-                  "report.md"
                   "assignment.pdf"
+                  (nix-filter.matchExt "sh")
+                  (nix-filter.matchExt "md")
+                  ".latexmkrc"
+                  (nix-filter.matchExt "tex")
+                  (nix-filter.matchExt "bib")
                 ];
               };
               buildInputs =
@@ -148,8 +156,47 @@
               '';
             };
 
-            build-report = name: pkgs.runCommand "${name}-report"
+            build-report = name: with builtins;
+              let
+                hasTex = pathExists ./${name}/report.tex;
+                hasMd = pathExists ./${name}/report.md;
+                hasLatexmk = pathExists ./${name}/.latexmkrc;
+              in
+              assert lib.assertMsg (hasTex || hasMd) "Missing report.tex or report.md";
+              assert lib.assertMsg (hasTex -> !hasMd) "Cannot have both report.tex and report.md";
+              assert lib.assertMsg (hasTex -> hasLatexmk) "Missing .latexmkrc";
+              (if hasTex then build-report-tex else build-report-md) name;
+
+            build-report-tex = name: pkgs.runCommand "${name}-report"
               {
+                inherit SOURCE_DATE_EPOCH;
+                src = nix-filter.filter {
+                  root = ./${name};
+                  include = [
+                    ".latexmkrc"
+                    (nix-filter.matchExt "tex")
+                    (nix-filter.matchExt "bib")
+                  ];
+                };
+                buildInputs = with pkgs; [
+                  texlive.combined.scheme-full
+                  outils
+                ];
+              }
+              ''
+                mkdir -p build $out
+                export HOME=$(mktemp -d)
+                lndir -silent "${build-figures name}" build
+                lndir -silent "$src" build
+                ln -s "${./common}" common
+                cd build
+                latexmk
+                cp report.pdf $out/$name.pdf
+              '';
+
+            build-report-md = name: pkgs.runCommand "${name}-report"
+              {
+                inherit SOURCE_DATE_EPOCH;
                 src = ./${name}/report.md;
 
                 buildInputs = with pkgs; [
@@ -175,7 +222,7 @@
               '';
 
             bundle-deliverable = report: figures: pkgs.runCommand
-              (pkgs.lib.removeSuffix "-report" report.name)
+              (lib.removeSuffix "-report" report.name)
               { buildInputs = with pkgs; [ outils ]; }
               ''
                 mkdir -p $out/{extras,src}
@@ -190,11 +237,11 @@
 
             lab-reports = builtins.map build-report lab-list;
             lab-figures = builtins.map build-figures lab-list;
-            lab-all = pkgs.lib.zipListsWith bundle-deliverable lab-reports lab-figures;
+            lab-all = lib.zipListsWith bundle-deliverable lab-reports lab-figures;
             lab-deliverables = builtins.map zip-derivation lab-all;
 
             derivations = with builtins; listToAttrs (
-              map (drv: pkgs.lib.nameValuePair drv.name drv)
+              map (drv: lib.nameValuePair drv.name drv)
                 (concatLists [ lab-reports lab-figures lab-deliverables lab-all ]));
           in
           {
@@ -247,7 +294,7 @@
                 inherit (self.checks.${system}.pre-commit-check) shellHook;
               };
 
-            shells = with builtins; listToAttrs (map (name: pkgs.lib.nameValuePair name (build-shell { inherit name; })) lab-list);
+            shells = with builtins; listToAttrs (map (name: lib.nameValuePair name (build-shell { inherit name; })) lab-list);
 
           in
           {
