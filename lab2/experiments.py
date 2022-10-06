@@ -4,11 +4,12 @@ import codecs
 import os
 import pathlib
 from itertools import chain  # , islice
+from multiprocessing import cpu_count
 from typing import Dict, Generator, Iterable
 
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import NotFoundError
-from elasticsearch.helpers import bulk
+from elasticsearch.helpers import parallel_bulk
 from elasticsearch_dsl import Index, analyzer, tokenizer
 
 
@@ -78,4 +79,8 @@ file_iter = chain.from_iterable(map(lambda x: x.iterdir(), newsgroups))
 map(init_index, chain.from_iterable(map(train_test, newsgroups)))
 
 # Bulk index
-bulk(client, file_list(file_iter))
+for success, info in parallel_bulk(
+    client, file_list(file_iter), thread_count=cpu_count() - 2
+):
+    if not success:
+        print("A document failed:", info)
