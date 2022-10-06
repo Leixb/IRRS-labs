@@ -190,8 +190,8 @@ if __name__ == "__main__":
         file2_id = search_file_by_path(client, index, file2)
 
         # Compute the TF-IDF vectors
-        file1_tw = toTFIDF(client, index, file1_id)
-        file2_tw = toTFIDF(client, index, file2_id)
+        file1_tw = list(toTFIDF(client, index, file1_id))
+        file2_tw = list(toTFIDF(client, index, file2_id))
 
         if args.print:
             print(f"TFIDF FILE {file1}")
