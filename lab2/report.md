@@ -77,6 +77,48 @@ from `20_newsgroups`.
 
 ## Understanding the code
 
-## Implementing new features
+### Optimizing the code for parallelism
+
+When taking a closer look to the code, we realized that there mas no form
+of parallelism. Given that some the computations are embarrassingly
+parallel, we decided to optimize the codebase so that we could run our
+experiments faster. Here are the changes we made and the measured
+speedups on the `arxiv` dataset:
+
+- `IndexFilesPreprocess.py`
+    - We changed the `ldocs` and `generate_files_list` to work as generators.
+      This prevents unnecessarily allocating all the documents on memory.
+    - Use `bulk_parallel` instead of `bulk` to perform the indexing.
+    - Speedup: **22.3s \textrightarrow{} 5.6s (74%)**
+    - Memory usage: 165Mb \textrightarrow{} 37Mb
+- `CountWords.py`
+    - We used `elasticsearch-dsl` sliced scan to slice the query results and
+    process them in separate threads.
+    - Instead of manually iterating and building our counter dictionary, we
+    used `collections.Counter`. This provides 2 benefits:
+        1. We can merge the `Counter` from each thread result efficiently and
+           without writing any code.
+            - Note: The combination of results is performed sequentially but could be
+            improved by implementing it as a parallel reduce.
+        2. We can get the number of words and unique words, instantly as well
+        as getting the $n$ most common words computed using an efficient heap.
+        - For cases where 
+    - Speedup: **37.2s \textrightarrow 7.1s (81%)**
+
+These results highly depend on the hardware where the computations are
+performed, in our case a 6 core machine with 2 threads per core, running
+both the ElasticSearch server and the python scripts. However, the benefits
+are quite significant, with an overall speedup of more than 75%.
+
+The parallel versions of the scripts are available in the delivery as
+`IndexFilesPreprocess_par.py` and `CountWords_par.py`.
+
+<!-- ## Implementing new features -->
+
+<!-- - `CountWords.py` -->
+<!--     - Add option to only compute top $n$ most common -->
+<!--         - This reduces execution time and memory usage by using a heap queue -->
+<!-- - `IndexFilesPreprocess.py` -->
+<!-- - `TFIDFViewer.py` -->
 
 # Conclusions
