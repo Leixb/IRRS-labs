@@ -16,7 +16,7 @@ FOLDER="$1"
 if [ $# -eq 0 ]; then
     echo "Usage: $0 <folder> [filter1 filter2 ...]" >&2
     FOLDER="${DATA}/20_newsgroups"
-    echo "Using default folder: $FOLDER"
+    echo "Using default folder: $FOLDER" >&2
 fi
 
 if [ ! -d "$FOLDER" ]; then
@@ -52,10 +52,10 @@ combinations() {
 }
 
 csv_header() {
-    for i in $(seq 1 "$N" | tac); do
+    for i in $(seq 1 "$N"); do
         echo -n "freq_$i;term_$i;"
     done
-    echo "unique;source;filters"
+    echo "unique;total;source;filters"
 }
 
 extract_top() {
@@ -65,10 +65,9 @@ extract_top() {
     filters_join="${filters_join// /,}"
     index_name="$(basename "$FOLDER");${filters_join}"
     index_name="${index_name//,/-}"
-    ./IndexFilesPreprocess.py --index "$index_name" --path "$FOLDER" --token "$TOKEN" --filter "${filter[@]}" >/dev/null 2>/dev/null
-    ./CountWords.py --index "$index_name" |
-        tail -n $((N + 2)) |
-        awk -v N="$N" -F',? ' 'BEGIN {ORS=";"} NR <= N { print $1 ";" $2 } END { print $1 }'
+    ./IndexFilesPreprocess_par.py --index "$index_name" --path "$FOLDER" --token "$TOKEN" --filter "${filter[@]}" >/dev/null 2>/dev/null
+    ./CountWords_par.py --index "$index_name" --top "$N" |
+        awk -v N="$N" -F',? ' 'BEGIN {ORS=";"} NR <= N { print $1 ";" $2 } END { print $1 ";" $2 }'
     echo "$index_name"
 }
 

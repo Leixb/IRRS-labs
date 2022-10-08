@@ -3,34 +3,50 @@
 # Parallel implementation of CountWords.py
 
 import argparse
+import sys
 from collections import Counter
-from functools import reduce
+from functools import partial, reduce
 from multiprocessing import Pool, cpu_count
+from typing import Iterable
 
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import NotFoundError, TransportError
 from elasticsearch_dsl import Search
 
+__client = None
 
-def process_slice(slice_no) -> Counter[str]:
-    se = (
-        Search(using=client, index=args.index)
-        .query("match_all")
-        .extra(slice={"id": slice_no, "max": SLICES})
-    )
-    sc = se.scan()
 
-    counter: Counter = Counter()
-    for s in sc:
-        try:
-            tv = client.termvectors(index=args.index, id=s.meta.id, fields=["text"])
-            if "text" in tv["term_vectors"]:
-                for t, ttv in tv["term_vectors"]["text"]["terms"].items():
-                    counter[t] += ttv["term_freq"]
-        except TransportError:
-            pass
+class EsCounter:
+    def __init__(self, client: Elasticsearch, slices: int):
+        self.slices = slices
 
-    return counter
+        global __client
+        __client = client
+
+    def process_slice(self, slice_no: int, index: str) -> Counter[str]:
+        se = (
+            Search(using=__client, index=index)
+            .query("match_all")
+            .extra(slice={"id": slice_no, "max": self.slices})
+        )
+        sc = se.scan()
+
+        counter: Counter = Counter()
+        for s in sc:
+            try:
+                tv = __client.termvectors(index=index, id=s.meta.id, fields=["text"])
+                if "text" in tv["term_vectors"]:
+                    for t, ttv in tv["term_vectors"]["text"]["terms"].items():
+                        counter[t] += ttv["term_freq"]
+            except TransportError:
+                print("TransportError", file=sys.stderr)
+                pass
+
+        return counter
+
+
+def join_counters(counters: Iterable[Counter]) -> Counter:
+    return reduce(lambda x, y: x + y, counters)
 
 
 if __name__ == "__main__":
@@ -47,17 +63,18 @@ if __name__ == "__main__":
 
     client = Elasticsearch(timeout=1000)
 
-    SLICES = cpu_count() - 1
-    print("Using {} slices".format(SLICES))
+    n_slices = cpu_count() - 1
+    es_counter = EsCounter(client, slices=n_slices)
 
+    print("Using {} slices".format(es_counter.slices), file=sys.stderr)
+
+    slice_processor = partial(es_counter.process_slice, index=args.index)
     try:
-        with Pool(SLICES) as pool:
-            results = pool.map(process_slice, range(SLICES))
+        with Pool(n_slices) as pool:
+            voc = join_counters(pool.map(slice_processor, range(n_slices)))
     except NotFoundError:
-        print("Index does not exist")
+        print("Index does not exist", file=sys.stderr)
         exit(1)
-
-    voc = reduce(lambda a, b: a + b, results)
 
     if args.all:
         lpal = [(k.encode("utf-8", "ignore"), v) for k, v in voc.items()]
@@ -69,5 +86,5 @@ if __name__ == "__main__":
         for w, c in voc.most_common(args.top):
             print(f"{c}, {w}")
     print("--------------------")
-    print(f"{len(voc)} Unique Words")
-    print(f"{voc.total()} Words")
+    print(f"{len(voc)}, {voc.total()}")
+    # print(f" Words")
