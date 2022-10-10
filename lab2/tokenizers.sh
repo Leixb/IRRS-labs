@@ -28,10 +28,12 @@ base="$(basename "$FOLDER")"
 
 SEP=${SEP:-,}
 
-echo "collection${SEP}token${SEP}words"
+echo "collection${SEP}token${SEP}unique${SEP}total"
 for token in "${TOKENS[@]}"; do
     index="$base-$token"
-    ./IndexFilesPreprocess.py --index "$index" --path "$FOLDER" --token "$token" >/dev/null 2>&1
-    words="$(./CountWords.py --index "$index" 2>/dev/null | tail -n 1 | cut -d ' ' -f 1)"
+    echo "$index" >&2
+    ./IndexFilesPreprocess_par.py --index "$index" --path "$FOLDER" --token "$token" >/dev/null 2>&1
+    words="$(./CountWords_par.py --index "$index" 2>/dev/null | tail -n 1 | tr -d ' ')"
+    words="${words//,/$SEP}" # replace comma with separator
     echo "${base}${SEP}${token}${SEP}${words}"
 done

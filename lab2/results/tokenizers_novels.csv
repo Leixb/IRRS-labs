@@ -1,5 +1,5 @@
-collection,token,words
-novels,whitespace,97404
-novels,classic,34988
-novels,standard,39039
-novels,letter,35618
+collection,token,unique,total
+novels,whitespace,56066,738739
+novels,classic,31950,1203995
+novels,standard,34234,1292214
+novels,letter,30937,1269667

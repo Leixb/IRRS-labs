@@ -50,7 +50,7 @@ produces more than two times the number of words than the other tokenizers.
 
 <!-- TODO: Why whitespace so much ??? -->
 
-![Number of words obtained with different tokenizers](./figures/words_token.pdf){#fig:words_token}
+![Number of words obtained with different tokenizers](./figures/tokenizers_all.pdf){#fig:words_token}
 
 ## Filters
 
@@ -69,7 +69,9 @@ from `20_newsgroups`.
 
 <!-- TODO: what can we conclude from the graph -->
 
-![Number of unique words obtained with different filters](./figures/words_filter.pdf){#fig:words_filter}
+![Number of unique words obtained with different filters](./figures/filters_novels_unique.pdf){#fig:words_filter}
+
+![Number of total words obtained with different filters](./figures/filters_novels_total.pdf){#fig:words_filter_total}
 
 <!-- TODO: zipf? -->
 
@@ -109,6 +111,10 @@ These results highly depend on the hardware where the computations are
 performed, in our case a 6 core machine with 2 threads per core, running
 both the ElasticSearch server and the python scripts. However, the benefits
 are quite significant, with an overall speedup of more than 75%.
+
+This was specially significant when running our experiments for testing the
+different combinations of filters, since it reduced the runtime from 40 minutes
+to less than 8 minutes.
 
 The parallel versions of the scripts are available in the delivery as
 `IndexFilesPreprocess_par.py` and `CountWords_par.py`.

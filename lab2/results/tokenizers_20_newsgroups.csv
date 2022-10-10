@@ -1,0 +1,5 @@
+collection,token,unique,total
+20_newsgroups,whitespace,234528,3368734
+20_newsgroups,classic,78928,1989758
+20_newsgroups,standard,84482,2238527
+20_newsgroups,letter,60750,2156131
