@@ -31,24 +31,23 @@ def add_source(fig: plt.Figure, source: str) -> None:
 def plot_tokenizers(
     df: pd.DataFrame, y: str = "unique", source: Optional[str] = None
 ) -> plt.Figure:
-    ax = df.plot.bar(
-        x="token",
-        y=y,
-        rot=0,
-        legend=False,
-        ylabel=f"{y} words".capitalize(),
-        xlabel="Tokenizer",
-        figsize=(6.4, 2.8),
-    )
+
+    fsx, fsy = plt.rcParams["figure.figsize"]
+    fig, ax = plt.subplots(figsize=(fsx, fsy * 0.6))
+
+    sns.barplot(data=df, x="token", y=y, ax=ax, alpha=0.8)
     ax.xaxis.grid(False)
     ax.ticklabel_format(axis="y", style="sci", scilimits=(3, 3))
+
+    ax.set_ylabel(f"{y} words".capitalize())
+    ax.set_xlabel("Tokenizer")
 
     # plt.ylim(0, 100e3)
     plt.subplots_adjust(bottom=0.2, right=0.95)
 
     for w in ax.patches:
         ax.annotate(
-            f"{w.get_height()}",
+            f"{w.get_height():.0f}",
             (w.get_x() + w.get_width() / 2, w.get_height()),
             ha="center",
             va="top",
@@ -195,8 +194,8 @@ def plot_tokenizers_summary(
 ) -> plt.Figure:
     fig, ax = plt.subplots(2, 1, sharex=True)
 
-    sns.barplot(x="collection", y="unique", hue="token", data=df, ax=ax[0])
-    sns.barplot(x="collection", y="total", hue="token", data=df, ax=ax[1])
+    sns.barplot(x="collection", y="unique", hue="token", data=df, ax=ax[0], alpha=0.8)
+    sns.barplot(x="collection", y="total", hue="token", data=df, ax=ax[1], alpha=0.8)
 
     ax[0].set_ylabel("Unique words")
     ax[0].set_xlabel("")
