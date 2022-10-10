@@ -6,6 +6,7 @@ import seaborn as sns
 def set_theme() -> Dict:
     sns.set_theme(
         context="paper",
+        palette="muted",
         style="whitegrid",
         font_scale=1.5,
         font="STIXGeneral",
