@@ -2,7 +2,7 @@
 
 import pathlib
 from functools import partial
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -13,10 +13,15 @@ from common import set_theme
 
 def add_source(fig: plt.Figure, source: str) -> None:
     source.replace("_", r"\_")
+    label = f" source: \\texttt{{{source}}}"
+
+    if source.count(",") > 0:
+        label = label.replace("source", "sources", 1)
+
     fig.text(
         0.01,
         0.01,
-        f" source: \\texttt{{{source}}}",
+        label,
         ha="left",
         fontsize=8,
         color="gray",
@@ -58,14 +63,49 @@ def plot_tokenizers(
     return ax.get_figure()
 
 
-def colorize(x: str, include_lowercase: bool = False) -> str:
-    max_len = "asciifolding-stop-porter_stem-kstem-snowball"
+__STEMMERS = set(["porter_stem", "kstem", "snowball"])
+
+
+def get_stemmers(x: str) -> List[str]:
+    if not isinstance(x, str):
+        return []
+    filter_list = set(x.split("-"))
+    return sorted(filter_list.intersection(__STEMMERS))
+
+
+def remove_filter_from_name(x: str, to_remove: Set = __STEMMERS) -> str:
+    return "-".join([f for f in x.split("-") if f not in to_remove])
+
+
+def stemmers_to_col(df: pd.DataFrame, withLen: bool = False) -> pd.DataFrame:
+    df = df.fillna("none")
+    df["stemmers"] = df["filters"].apply(get_stemmers)
+
+    def transform(x: List[str]):
+        if len(x) == 0:
+            return "none"
+        if len(x) == 1:
+            return x[0]
+        return f"multiple-{len(x)}" if withLen else "multiple"
+
+    df["stemmers"] = df["stemmers"].apply(transform)
+    df["filters"] = df["filters"].apply(remove_filter_from_name)
+    df["n_filters"] = df["filters"].apply(
+        lambda x: x.count("-") + 1 if x != "none" else 0
+    )
+
+    return df
+
+
+def colorize(x_: str, include_lowercase: bool = False) -> str:
+    # max_len = "asciifolding-stop-porter_stem-kstem-snowball"
+    max_len = "asciifolding-stop"
 
     if include_lowercase:
         max_len = "lowercase-" + max_len
 
     all = max_len.split("-")
-    x = x.split("-")
+    x = x_.split("-")
 
     out = r"\texttt{\color{lightgray}"
     cnt = 0
@@ -76,11 +116,6 @@ def colorize(x: str, include_lowercase: bool = False) -> str:
         else:
             out += " " + i
     out = out + "}" + r" \textcolor[HTML]{1f77b4}" + f"{cnt}"
-
-    if cnt == 0:
-        out = r"\textasteriskcentered" + out
-    elif cnt == len(all):
-        out = "+" + out
 
     return out
 
@@ -115,15 +150,29 @@ def plot_filters(
     )
 
     plt.xlabel(f"{x} words".capitalize())
-    plt.ylabel("Filters")
-    plt.legend(
-        loc="lower left", title=hue.capitalize(), framealpha=1 if lowercase else 0.7
+    plt.ylabel("Filters", labelpad=10)
+
+    ax.legend().set_visible(False)
+    fig.legend(
+        loc="upper center",
+        frameon=False,
+        ncol=5,
+        title=hue.capitalize(),
+        framealpha=1 if lowercase else 0.7,
     )
+
+    # Add separation between groups with same number of filters
+    xmin, xmax = ax.get_xlim()
+    plt.autoscale(False)
+    plt.hlines(
+        [0.5, 3.5, 6.5], xmin, xmax * 1.1, color="b", linestyles="dotted", alpha=0.5
+    )
+
     ax.yaxis.grid(False)
     ax.ticklabel_format(axis="x", style="sci", scilimits=(3, 3))
 
-    left_adj = 0.5 if lowercase else 0.6
-    fig.subplots_adjust(left=left_adj, top=0.98, right=0.98)
+    left_adj = 0.35
+    fig.subplots_adjust(left=left_adj, top=0.85, right=0.98)
     plt.yticks(fontsize=8)
 
     plt.figtext(
@@ -141,7 +190,9 @@ def plot_filters(
     return ax.get_figure()
 
 
-def plot_tokenizers_summary(df: pd.DataFrame, output_dir: pathlib.Path) -> plt.Figure:
+def plot_tokenizers_summary(
+    df: pd.DataFrame, output_dir: pathlib.Path, source: str = None
+) -> plt.Figure:
     fig, ax = plt.subplots(2, 1, sharex=True)
 
     sns.barplot(x="collection", y="unique", hue="token", data=df, ax=ax[0])
@@ -166,6 +217,9 @@ def plot_tokenizers_summary(df: pd.DataFrame, output_dir: pathlib.Path) -> plt.F
     plt.figlegend(
         lines, labels, loc="upper center", ncol=4, frameon=False, title="Tokenizer"
     )
+
+    if source is not None:
+        add_source(fig, source)
 
     return fig
 
@@ -211,7 +265,8 @@ def main(
 
     df_tokens = pd.concat(df_token_list)
 
-    fig = plot_tokenizers_summary(df_tokens, output_dir)
+    source_all = ", ".join(df_tokens["collection"].unique())
+    fig = plot_tokenizers_summary(df_tokens, output_dir, source=source_all)
     save_fig(fig, output_dir, f"tokenizers_all.{format}", **save_args)
 
     df_tokens.set_index(["collection", "token"]).style.format(precision=3).to_latex(
@@ -224,10 +279,16 @@ def main(
         name = filter_data.stem.removeprefix("filters_")
 
         df = pd.read_csv(filter_data, sep=";")
+
+        # Move stemmers to columns instead of being in filters
+        df = stemmers_to_col(df)
+        df.sort_values("n_filters", inplace=True)
+        df = df.loc[df["stemmers"] != "multiple"]
+
         df_filter_list.append(df)
 
         for variable in ["unique", "total"]:
-            fig = plot_filters(df.sort_values(variable), x=variable, source=name)
+            fig = plot_filters(df, x=variable, hue="stemmers", source=name)
             save_fig(
                 fig,
                 output_dir,
@@ -242,16 +303,13 @@ def main(
 
     df_filters = pd.concat(df_filter_list)
 
-    fig = plot_filters(
-        df_filters.sort_values("unique"), x="unique", hue="source", source="all"
-    )
+    source_all = ", ".join(df_filters["source"].unique())
+    fig = plot_filters(df_filters, x="unique", hue="source", source=source_all)
     save_fig(
         fig, output_dir, f"filters_unique_all.{format}", backend="pgf", **save_args
     )
 
-    fig = plot_filters(
-        df_filters.sort_values("total"), x="total", hue="source", source="all"
-    )
+    fig = plot_filters(df_filters, x="total", hue="source", source=source_all)
     save_fig(fig, output_dir, f"filters_total_all.{format}", backend="pgf", **save_args)
 
     df[["source", "filters", "unique", "total"]].set_index(
