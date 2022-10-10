@@ -35,7 +35,7 @@ def plot_tokenizers(
     fsx, fsy = plt.rcParams["figure.figsize"]
     fig, ax = plt.subplots(figsize=(fsx, fsy * 0.6))
 
-    sns.barplot(data=df, x="token", y=y, ax=ax, alpha=0.8)
+    sns.barplot(data=df, x="token", y=y, ax=ax)
     ax.xaxis.grid(False)
     ax.ticklabel_format(axis="y", style="sci", scilimits=(3, 3))
 
@@ -143,7 +143,6 @@ def plot_filters(
         y="filters",
         hue=hue,
         data=dd,
-        alpha=0.8,
         palette=["r", "g"] if lowercase else sns.color_palette(),
         ax=ax,
     )
@@ -194,8 +193,8 @@ def plot_tokenizers_summary(
 ) -> plt.Figure:
     fig, ax = plt.subplots(2, 1, sharex=True)
 
-    sns.barplot(x="collection", y="unique", hue="token", data=df, ax=ax[0], alpha=0.8)
-    sns.barplot(x="collection", y="total", hue="token", data=df, ax=ax[1], alpha=0.8)
+    sns.barplot(x="collection", y="unique", hue="token", data=df, ax=ax[0])
+    sns.barplot(x="collection", y="total", hue="token", data=df, ax=ax[1])
 
     ax[0].set_ylabel("Unique words")
     ax[0].set_xlabel("")
