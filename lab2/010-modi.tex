@@ -1,0 +1,117 @@
+\section{Modifying Elastic Search index behavior}
+
+\subsection{Tokenizers}
+
+Based on the ElasticSearch tokenizer reference \cite{noauthor_tokenizer_nodate}, the tokenizers that we had to test are word oriented tokenizers. We had 4 different tokenizers to try for this laboratory:
+%https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-tokenizers.html
+% TODO: (maybe) brief description of what each one does?
+\begin{enumerate}
+    \item \textbf{whitespace}: if there is any whitespace character, this tokenizer separate text into terms.
+    \item \textbf{classic}: as our texts are in English language, we can use this tokenizer because is a grammar based tokenizer in that language. 
+    \item \textbf{standard}: this breaks text into terms on word boundaries, which are described by the Unicode Text Segmentation algorithm. Also, standard tokenizer takes out most punctuation symbols.
+    \item \textbf{letter}: sometimes our text has characters which are not letters, so with this tokenizer the text would be divided into terms each time it finds anything but a letter.
+\end{enumerate}
+
+We tried them all in the different document collections, the results
+are shown in~\cref{fig:tokenizers_all}. Interestingly, the \texttt{whitespace}
+tokenizer gives the highest total words on newsgroups but the lowest on novels
+and arxiv. In general, standard and classic seam to perform similarly both in total
+and unique words.
+
+\begin{figure}[H]
+    \centering\includegraphics{tokenizers_all}
+    \caption{Effect of the tokenizers on the number of words}
+    \label{fig:tokenizers_all}
+\end{figure}
+
+%We can observe that %...
+%
+%\begin{figure}[H]
+%    \centering\includegraphics{tokenizers_novels_unique}
+%    \caption{Effect of the tokenizers on the number of words}
+%    \label{fig:tokenizers_novels_unique}
+%\end{figure}
+
+\subsection{Filters}
+
+The \texttt{IndexFilesPreprocess.py} script gave the options to use filters too. In order to prove their impact in text, we have different filters and their definitions are the following:
+\begin{itemize}
+    \item \textbf{lowercase}: converts the characters to lowercase.
+    \item \textbf{asciifolding}: removes accents, and other special characters and converts them to their ASCII equivalent.
+    %(gets rid of strange non ASCII characters that some languages love to use), 
+    %Converts alphabetic, numeric, and symbolic characters that are not in the Basic Latin Unicode block (first 127 ASCII characters) to their ASCII equivalent, if one exists. For example, the filter changes à to a.
+    \item \textbf{stop}:  removes standard english stopwords (a, the, of\dots)
+    %stop (remove standard english stopwords)  such as a, an, and, are, as, at, be, but, by, for, if, in, into, is, it, no, not, of, on, or, such, that, the, their, then, there, these, they, this, to, was, will, with
+    \item \textbf{stemmers}: \emph{kstem}, \emph{porter}, \emph{snowball}
+    %stemming algorithms for the english language (snowball, porter stem and kstem). 
+    %\begin{itemize}
+    %    \item kstem: The least aggressive stemmer
+    %    %https://www.elastic.co/guide/en/elasticsearch/reference/8.4/analysis-snowball-tokenfilter.html'
+    %    \item porter stem: Slightly more aggresive
+    %    %https://www.elastic.co/guide/en/elasticsearch/reference/8.4/analysis-porterstem-tokenfilter.html
+    %    \item snowball: More aggressive than porter
+    %    % https://www.elastic.co/guide/en/elasticsearch/reference/8.4/analysis-kstem-tokenfilter.html
+    %\end{itemize}
+\end{itemize}
+
+We ran our program, trying all combinations of these filters. We did not consider any permutations and maintained
+the order above in order to reduce the search space and because it made most sense to run them in this
+order.
+
+\Cref{fig:stem_news_total,fig:stem_news_unique} show the total and unique words for each combination
+respectively when applied to the newsgroups dataset. Some conclusions we can extract from these figures:
+\begin{enumerate}
+    \item We can see that in most cases, the expected order of \texttt{kstem} > \texttt{porter} > \texttt{snowball} holds.
+    Showing that indeed \texttt{snowball} is the most aggressive stemmer.
+    \item \texttt{stop} reduces the number of \emph{total} words by around a third.
+    \item \texttt{lowercase} reduces the number of \emph{unique} words.
+\end{enumerate}
+
+\begin{figure}[ht]
+    \centering\includegraphics{figures/filters_20_newsgroups_total.pdf}
+    \caption{Combination of filters for 20\_newsgroups - total words}
+    \label{fig:stem_news_total}
+\end{figure}
+
+\begin{figure}[hb]
+    \centering\includegraphics{figures/filters_20_newsgroups_unique.pdf}
+    \caption{Combination of filters for 20\_newsgroups - unique words}
+    \label{fig:stem_news_unique}
+\end{figure}
+
+%TODO: most common words for different filters.
+
+We also recorded the top 10 words for each combination, we found that \emph{the}, \emph{to} \emph{and}\dots and other
+\emph{stopwords} were
+the most common when not using \texttt{stop} filtering in the 3 corpus. Other filters did not seem to affect the
+results much (except lowercase for I \textrightarrow i). We summarize the top words for each corpus below:
+
+\begin{enumerate}
+\item \textbf{novels:} i, he, his, had, you, have, which, from, my, all
+\item \textbf{20\_newsgroups:} i, you, have, from, use, can, my, one, write, do
+\item \textbf{arxiv\_abs:} we, model, from, use, which, can, our, result, time, data
+\end{enumerate}
+
+Some insights: %TODO: fix this
+\begin{enumerate}
+\item \textbf{Personal pronouns:} The novels use \emph{I} and \emph{he} since they explain a story in 1st or 3rd person. In contrast,
+newsgroups use \emph{you} since they come from emails and thus are more similar to conversation between individuals.
+Finally, arxiv uses \emph{we} the most, since it comes from abstracts of scientific papers which are co-authored.
+\item \textbf{Verbs:} In novels, we \emph{have} and its past form \emph{had}. For newsgroups, we have only the latter in the top 10
+along with \emph{use}, \emph{can} and \emph{write} (probably due to the email nature where quotations from replies are prefaced with \emph{username writes:}).
+In contrast, arxiv does not have the verb \emph{have} in the top 10, and only has \emph{use}, \emph{can} and possibly
+\emph{model} (although it is probably used as a noun in most cases).
+\end{enumerate}
+
+%%%%falta
+%\begin{figure}[H]
+%    \centering\includegraphics{figures/filters_total_all}
+%    \caption{Combination of filters with and without Lowercase}
+%    \label{fig:my_label}
+%\end{figure}
+%
+%\begin{figure}[H]
+%    \centering\includegraphics{figures/filters_unique_all}
+%    \caption{Combination of filters with and without Lowercase}
+%    \label{fig:my_label}
+%\end{figure}

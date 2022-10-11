@@ -1,0 +1,69 @@
+\section{Computing tf-idf ’s and cosine similarity}
+
+We implemented the code using \texttt{numpy} and tested it against the \texttt{docs} examples, obtaining
+the same results we computed in class.
+
+\subsection{Finding related documents}
+
+Once we had the TF-IDF computation properly implemented, we decided to implement a program that could
+provide us with related documents in the same index. Our goal was that, given a document in the index,
+suggest the top $N$ documents with the highest similarity score.
+
+The implementation is quite simple, but since we wanted it to be fast, we decided to use sliced scroll
+queries from ElasticSearch in order to process the computations in parallel \cite{noauthor_paginate_nodate}.
+Since we are only interested on the top $N$ most common documents, we can use a heap queue
+with limited size along with python generators to only save in memory $N$ results. With this parallel design,
+we can fetch the most similar documents in less than 15 seconds on a 12 thread machine. By comparison,
+the same program on a single thread takes 90 seconds.\footnote{Note: this same parallel optimizations were also
+applied on the \texttt{CountWords} and \texttt{IndexFilesPreprocess} for the previous sections with similar speedups.
+This allowed us to test all the combinations we discussed previously in reasonable times.
+The parallel implementation of these files are in the deliverable with the suffix \texttt{\_par}}
+
+Below we show an example query for a document in the cryptology newsgroups. It outputs the scores for each document
+along with the top tf-idf terms of the original document:
+\begin{minted}{shell-session}
+$./TFIDF_experiment.py --index "20_newsgroups-lowercase-asciifolding-stop-snowball" $DATA/20_newsgroups/sci.crypt/0011681
+Original file:	data/20_newsgroups/sci.crypt/0011681
+Keywords: des, send, recipi, softwar, encrypt, legal, 1993apr22.125402.27561, fripp.ri.cadre.com, ri.cadre.com, licens
+1.0000 data/20_newsgroups/sci.crypt/0011681
+0.5683 data/20_newsgroups/sci.crypt/0011625
+0.3514 data/20_newsgroups/sci.crypt/0011676
+0.3494 data/20_newsgroups/sci.crypt/0011109
+0.3455 data/20_newsgroups/sci.crypt/0011599
+0.3285 data/20_newsgroups/sci.crypt/0011708
+0.3184 data/20_newsgroups/sci.crypt/0011620
+0.2896 data/20_newsgroups/talk.religion.misc/0019137
+0.2875 data/20_newsgroups/sci.crypt/0011044
+0.2864 data/20_newsgroups/sci.crypt/0011639
+\end{minted}
+
+If we inspect these documents, all of them talk about DES \cite{noauthor_data_2022} a Data encryption
+standard which was cracked in 1997. Even the one from talk.religion.misc document is a discussion about it.
+If we instruct our program to ignore paths from \texttt{sci}, we get some more talks in religious forums
+and \texttt{misc.forsale/0006636}, which is a posting of someone who wants an airplane ticket
+from \emph{\textbf{Des} Moines}, which explains the high score of the document. One thing to consider is that
+many of the newsgroups documents are email threads, where the replies copy the original message on top. In most
+cases, the related documents are part of the same mail chain.
+
+
+% When applied to a single document, this related documents is usefull for a recommender, but if we apply it
+% for all documents in the collection and restrict the similarity, we can obtain a network of realted documents
+% and communities
+
+
+\section{Conclusion}
+
+With this laboratory session, we have learned the basics of performing queries in Elasticsearch
+to compute our own metrics. We have been able to compute TF-IDF from basic text statistics in an efficient
+manner and analyzed the effects that some tokenizers and filters that ElasticSearch provides
+have when indexing a corpus. Additionally, we explored how ElasticSearch queries can be parallelized to
+reduce the time it takes to compute our metrics.
+
+The \emph{standard} and \emph{classic} tokenizers behave similarly across our 3 different corpuses,
+but the \emph{letter} and \emph{whitespace} behave differently depending on the corpus.
+
+For the filters found that \emph{stop} has a noticeable effect on the most common words as well as the number of total words
+of a document, \emph{lowercase} reduces the number of unique words in a document significantly and 
+\emph{snowball} is the most aggressive stemmer.
+
+%For this laboratory we had been working directly with Elastic Search through programming it and their characteristic scripts
