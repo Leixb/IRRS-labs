@@ -178,7 +178,9 @@
                     (nix-filter.matchExt "bib")
                   ];
                 };
-                buildInputs = with pkgs; [
+                nativeBuildInputs = with pkgs; [
+                  python3.pkgs.pygments
+                  which
                   texlive.combined.scheme-full
                   outils
                 ];
