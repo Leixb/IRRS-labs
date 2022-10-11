@@ -6,30 +6,16 @@ from functools import partial
 from heapq import nlargest
 from itertools import chain
 from multiprocessing import Pool, cpu_count
-from time import sleep
-from typing import Callable, Generator, Iterable, Tuple
+from typing import List, Tuple
 
-import numpy as np
-import numpy.typing as npt
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import NotFoundError
 from elasticsearch_dsl import Q, Search
 from TFIDFViewer import cosine_similarity, search_file_by_path, toTFIDF
 
-cnt = 0
 
-
-def get_file_id(f):
-    return f.meta.id
-
-
-def all_file_ids(client, index):
-    s = Search(using=client, index=index)
-    q = Q()
-    s = s.query(q)
-    yield from map(get_file_id, s.scan())
-
-
+# Theoretically, Elasticsearch client should be thread-safe, but sometimes
+# it throws an exception. So we create a new client for each worker instead.
 def worker_init(*args, **kwargs):
     global _client
     _client = Elasticsearch(*args, **kwargs)
@@ -42,7 +28,7 @@ class Slicer:
         self.slices = slices
         self.tfw_orig = tfw_orig
 
-    def process_slice(self, slice_no: int) -> Iterable[Tuple[float, str]]:
+    def process_slice(self, slice_no: int) -> List[Tuple[float, str]]:
         global client
         sc = (
             Search(using=_client, index=self.index)
@@ -51,7 +37,7 @@ class Slicer:
             .scan()
         )
 
-        doc_ids = map(get_file_id, sc)
+        doc_ids = map(lambda f: f.meta.id, sc)
         scores = map(
             lambda doc: (
                 cosine_similarity(self.tfw_orig, toTFIDF(_client, self.index, doc)),
@@ -72,7 +58,7 @@ def main(index: str, path: str, n: int):
 
     tfw_orig = list(tfidf(doc_original))
 
-    print("Original file:", path, file=sys.stderr)
+    print("Original file:", doc_original, path, sep="\t", file=sys.stderr)
     keywords = [x[0] for x in nlargest(10, tfw_orig, key=lambda x: x[1])]
     print("Keywords:", ", ".join(keywords))
 
@@ -94,9 +80,13 @@ def main(index: str, path: str, n: int):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Search for a file using its path")
-    parser.add_argument("path", type=str, help="path of the file to search")
     parser.add_argument("index", type=str, help="index to search in")
+    parser.add_argument("path", type=str, help="path of the file to search")
     parser.add_argument("-n", type=int, default=10, help="number of results to return")
     args = parser.parse_args()
 
-    main(args.index, args.path, args.n)
+    try:
+        main(args.index, args.path, args.n)
+    except NotFoundError:
+        print("Not found", file=sys.stderr)
+        sys.exit(1)

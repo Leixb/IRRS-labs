@@ -31,11 +31,10 @@ IndexFiles
 
 import argparse
 import codecs
-import itertools
 import os
 import sys
 from multiprocessing import cpu_count
-from typing import Generator, Iterable, List, Tuple, Union
+from typing import Generator, Iterable, List, Union
 
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import NotFoundError
@@ -75,64 +74,6 @@ class Indexer:
             if count % 500 == 0:
                 print("Indexed:", count, end="\r", file=sys.stderr)
         return count
-
-    def multi_index(
-        self,
-        index_pre: str,
-        files: Iterable[str],
-        filters: Iterable[Union[Iterable[str], str]],
-        tokens: Iterable[str] = None,
-        skip_existing: bool = False,
-    ) -> Tuple[int, List[str]]:
-
-        if tokens is None:
-            tokens = ["standard"]
-        if isinstance(tokens, str):
-            tokens = [tokens]
-
-        def build_index_names(
-            token: str, filter: List[str]
-        ) -> Tuple[str, Tuple[str, List[str]]]:
-            index = "-".join([index_pre, token, "_".join(filter)])
-            return index.removesuffix("-"), (token, filter)
-
-        index_list = list(
-            itertools.starmap(
-                build_index_names,
-                itertools.product(tokens, filters),
-            )
-        )
-
-        # If the index already exists, skip it
-        if skip_existing:
-            index_filtered = [
-                index
-                for index in index_list
-                if not self.client.indices.exists(index=index[0])
-            ]
-
-        index_created = list(
-            itertools.starmap(
-                lambda index, token_filter: self.init_index(index, *token_filter),
-                index_list if not skip_existing else index_filtered,
-            )
-        )
-
-        index_created_names = [index._name for index in index_created]
-        index_names = [name for name, _ in index_list]
-
-        print(f"{len(index_created)} Indices created", file=sys.stderr)
-        if skip_existing:
-            print(
-                f"{len(index_list) - len(index_filtered)} Indices skipped",
-                file=sys.stderr,
-            )
-
-        # We only run the indexer on the indices that were created, but we return the names of all indices
-        return (
-            self.__process(build_operations_multi(files, index_created_names)),
-            index_names,
-        )
 
     def init_index(
         self, index: str, token: str, filter: Union[List[str], str]
@@ -180,19 +121,6 @@ class Indexer:
         ind.open()
 
         return ind
-
-
-def build_operations_multi(
-    files: Iterable[str], index: Iterable[str]
-) -> Generator[dict, None, None]:
-    for file in files:
-        with codecs.open(file, "r", encoding="iso-8859-1") as f:
-            text = f.read()
-            base = {"_op_type": "index", "path": file, "text": text}
-            for i in index:
-                # Q: Does this work?
-                base.update({"_index": i})
-                yield base
 
 
 def build_operations(files: Iterable[str], index: str) -> Generator[dict, None, None]:
