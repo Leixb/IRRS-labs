@@ -38,7 +38,6 @@ elasticsearch = "<8.0.0"
 wordcloud = "^1.8.2.2"
 
 [tool.poetry.group.lab3.dependencies]
-nltk = "^3.7"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
