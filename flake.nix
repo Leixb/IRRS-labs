@@ -39,6 +39,8 @@
         nix-filter = inputs.nix-filter.lib;
         python = pkgs.python3;
 
+        preferWheels = true;
+
         overrides = pkgs.poetry2nix.overrides.withDefaults (self: super: {
           mypy = super.mypy.overridePythonAttrs (old: { patches = [ ]; });
           pytoolconfig = super.pytoolconfig.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.pdm-pep517 ]; });
@@ -48,6 +50,9 @@
           seaborn = super.seaborn.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.flit ]; });
           pandas-stubs = super.pandas-stubs.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.poetry ]; });
           contourpy = super.contourpy.overridePythonAttrs (old: { nativeBuildInputs = old.nativeBuildInputs ++ [ self.pybind11 ]; });
+          # numpy = super.numpy.override { preferWheel = true; };
+          # polars = super.polars.override { preferWheel = true; };
+          nbconvert = super.nbconvert.overridePythonAttrs (old: { postPatch = if preferWheels then null else old.postPatch; });
         });
 
         lab1-data =
@@ -92,7 +97,7 @@
           '';
 
         py-env = { groups ? [ ] }: pkgs.poetry2nix.mkPoetryEnv {
-          inherit python overrides groups;
+          inherit python preferWheels overrides groups;
           pyproject = ./pyproject.toml;
           poetrylock = ./poetry.lock;
         };
