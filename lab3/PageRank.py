@@ -2,8 +2,9 @@
 
 import sys
 import time
-import numpy as np
 from collections import namedtuple
+
+import numpy as np
 
 
 class Edge:
@@ -28,12 +29,15 @@ class Airport:
     def __repr__(self):
         return f"{self.code}\t{self.pageIndex}\t{self.name}"
 
+
 class Route:
-    def __init__(self, departure=None, arrival=None, depNum=None, arrivNum=None, ident=None):
+    def __init__(
+        self, departure=None, arrival=None, depNum=None, arrivNum=None, ident=None
+    ):
         self.departure = departure
-        self.departureNum = depNum 
+        self.departureNum = depNum
         self.arrival = arrival
-        self.arrivalNum = arrivNum 
+        self.arrivalNum = arrivNum
         self.id = ident
         self.count = 0
 
@@ -43,9 +47,10 @@ edgeHash = dict()  # hash of edge to ease the match
 airportList = []  # list of Airport
 airportHash = dict()  # hash key IATA code -> Airport
 
+
 def readAirports(fd):
     print("Reading Airport file from {0}".format(fd))
-    airportsTxt = open(fd, "r",encoding="utf-8")
+    airportsTxt = open(fd, "r", encoding="utf-8")
     cont = 0
     for line in airportsTxt.readlines():
         a = Airport()
@@ -67,20 +72,20 @@ def readAirports(fd):
 
 def readRoutes(fd):
     print("Reading Routes file from {fd}")
-    routesTxt = open(fd,"r")
-    cont = 0 
+    routesTxt = open(fd, "r")
+    cont = 0
     for line in routesTxt.readlines():
         r = Route()
         try:
             temp = line.split(",")
-            if (len(temp[2]) !=3 or len(temp[4]) != 3):
+            if len(temp[2]) != 3 or len(temp[4]) != 3:
                 raise Exception("not an IATA code")
         except Exception as inst:
             pass
         else:
-            edge=edgeHash.get(temp[2]+temp[4])
-            if(edge):
-                 edge.count+=1
+            edge = edgeHash.get(temp[2] + temp[4])
+            if edge:
+                edge.count += 1
             else:
                 cont += 1
                 r.departureNum = temp[1]
@@ -88,9 +93,9 @@ def readRoutes(fd):
                 r.arrivalNum = temp[3]
                 r.arrival = temp[4]
                 r.count = 1
-                r.id= temp[2]+temp[4]
+                r.id = temp[2] + temp[4]
                 edgeList.append(r)
-                edgeHash[r.id] = r 
+                edgeHash[r.id] = r
     routesTxt.close()
     print(f"There were {cont} Routes with IATA codes")
 
@@ -98,43 +103,42 @@ def readRoutes(fd):
 def computePageRanks():
     size = len(airportList)
     l = 0.9
-    p = np.zeros((size,size))
-    i=0
-    j=0
+    p = np.zeros((size, size))
+    i = 0
+    j = 0
     for i in range(size):
         a1 = airportList[i]
         for j in range(size):
             a2 = airportList[j]
-            edge = edgeHash.get(a1.code+a2.code)
-            if(edge):
-                p[i][j]=edge.count  # fill the matrix with the out degrees 
-        p[i]=normalize(p[i]) # Normalising the matrix sometimes gives a total of 0.9999...
-        if(np.sum(p[i])>0.2): # applying the google algorithm 
-            p[i] = p[i]*l + (1-l)/size
-        else: # case of all zero vectors
-            p[i] =p[i]*0 + 1/size
-    
-    pi = np.ones(size,float)/size # uniform PI(0)
+            edge = edgeHash.get(a1.code + a2.code)
+            if edge:
+                p[i][j] = edge.count  # fill the matrix with the out degrees
+        p[i] = normalize(
+            p[i]
+        )  # Normalising the matrix sometimes gives a total of 0.9999...
+        if np.sum(p[i]) > 0.2:  # applying the google algorithm
+            p[i] = p[i] * l + (1 - l) / size
+        else:  # case of all zero vectors
+            p[i] = p[i] * 0 + 1 / size
 
-
+    pi = np.ones(size, float) / size  # uniform PI(0)
 
     # p = np.array([[0.8,0.15,0.05],
     #                 [0.7,0.2,0.1],
     #                 [0.5,0.3,0.2]])
     # pi = np.array([0.2,0.2,0.6])
 
-    #Stationary distribution
-    n=0
-    while(n<1000):
-        n+=1
-        res=np.dot(pi,p)
-        diff = pi-res
-        if(max(np.abs(diff))<10e-10):
+    # Stationary distribution
+    n = 0
+    while n < 1000:
+        n += 1
+        res = np.dot(pi, p)
+        diff = pi - res
+        if max(np.abs(diff)) < 10e-10:
             break
-        pi=res
-    print(pi,np.sum(pi))
-    return(n)
-    
+        pi = res
+    print(pi, np.sum(pi))
+    return n
 
 
 def outputPageRanks():
@@ -144,9 +148,11 @@ def outputPageRanks():
 
 def normalize(vect):
     size = np.sum(vect)
-    if(size!=0):
-        vect = vect/size
+    if size != 0:
+        vect = vect / size
     return vect
+
+
 def main(argv=None):
     readAirports("airports.txt")
     readRoutes("routes.txt")
