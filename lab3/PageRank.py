@@ -49,7 +49,7 @@ airportHash = dict()  # hash key IATA code -> Airport
 
 
 def readAirports(fd):
-    print("Reading Airport file from {0}".format(fd))
+    print(f"Reading Airport file from {fd}")
     airportsTxt = open(fd, "r", encoding="utf-8")
     cont = 0
     for line in airportsTxt.readlines():
@@ -71,7 +71,7 @@ def readAirports(fd):
 
 
 def readRoutes(fd):
-    print("Reading Routes file from {fd}")
+    print(f"Reading Routes file from {fd}")
     routesTxt = open(fd, "r")
     cont = 0
     for line in routesTxt.readlines():
