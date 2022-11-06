@@ -2,6 +2,7 @@
 
 import sys
 import time
+import numpy as np
 from collections import namedtuple
 
 
@@ -28,11 +29,11 @@ class Airport:
         return f"{self.code}\t{self.pageIndex}\t{self.name}"
 
 class Route:
-    def __init__(self, departure=None, arrival=None,depHash=None,arrivHash=None,ident=None):
+    def __init__(self, departure=None, arrival=None, depNum=None, arrivNum=None, ident=None):
         self.departure = departure
-        self.departureHash = depHash
+        self.departureNum = depNum 
         self.arrival = arrival
-        self.arrivalHash = arrivHash
+        self.arrivalNum = arrivNum 
         self.id = ident
         self.count = 0
 
@@ -41,7 +42,6 @@ edgeList = []  # list of Edge
 edgeHash = dict()  # hash of edge to ease the match
 airportList = []  # list of Airport
 airportHash = dict()  # hash key IATA code -> Airport
-
 
 def readAirports(fd):
     print("Reading Airport file from {0}".format(fd))
@@ -83,9 +83,9 @@ def readRoutes(fd):
                  edge.count+=1
             else:
                 cont += 1
-                r.departureHash = temp[1]
+                r.departureNum = temp[1]
                 r.departure = temp[2]
-                r.arrivalHash = temp[3]
+                r.arrivalNum = temp[3]
                 r.arrival = temp[4]
                 r.count = 1
                 r.id= temp[2]+temp[4]
@@ -96,8 +96,45 @@ def readRoutes(fd):
 
 
 def computePageRanks():
-    pass
-    # write your code
+    size = len(airportList)
+    l = 0.9
+    p = np.zeros((size,size))
+    i=0
+    j=0
+    for i in range(size):
+        a1 = airportList[i]
+        for j in range(size):
+            a2 = airportList[j]
+            edge = edgeHash.get(a1.code+a2.code)
+            if(edge):
+                p[i][j]=edge.count  # fill the matrix with the out degrees 
+        p[i]=normalize(p[i]) # Normalising the matrix sometimes gives a total of 0.9999...
+        if(np.sum(p[i])>0.2): # applying the google algorithm 
+            p[i] = p[i]*l + (1-l)/size
+        else: # case of all zero vectors
+            p[i] =p[i]*0 + 1/size
+    
+    pi = np.ones(size,float)/size # uniform PI(0)
+
+
+
+    # p = np.array([[0.8,0.15,0.05],
+    #                 [0.7,0.2,0.1],
+    #                 [0.5,0.3,0.2]])
+    # pi = np.array([0.2,0.2,0.6])
+
+    #Stationary distribution
+    n=0
+    while(n<1000):
+        n+=1
+        res=np.dot(pi,p)
+        diff = pi-res
+        if(max(np.abs(diff))<10e-10):
+            break
+        pi=res
+    print(pi,np.sum(pi))
+    return(n)
+    
 
 
 def outputPageRanks():
@@ -105,6 +142,11 @@ def outputPageRanks():
     # write your code
 
 
+def normalize(vect):
+    size = np.sum(vect)
+    if(size!=0):
+        vect = vect/size
+    return vect
 def main(argv=None):
     readAirports("airports.txt")
     readRoutes("routes.txt")
