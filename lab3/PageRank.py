@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import sys
 import time
 from heapq import nlargest
@@ -71,7 +72,7 @@ class Airport:
 
 
 def readAirports(fd):
-    print("Reading Airport file from {0}".format(fd))
+    print("Reading Airport file from {0}".format(fd), file=sys.stderr)
     for code, name in (
         pl.scan_csv(
             fd, has_header=False, null_values=["\\N", ""], infer_schema_length=200
@@ -88,11 +89,11 @@ def readAirports(fd):
     ):
         Airport(iden=code, name=name).register()
 
-    print(f"There were {len(Airport.list)} Airports with IATA code")
+    print(f"There were {len(Airport.list)} Airports with IATA code", file=sys.stderr)
 
 
 def readRoutes(fd):
-    print(f"Reading Routes file from {fd}")
+    print(f"Reading Routes file from {fd}", file=sys.stderr)
 
     unknown_orig = 0
     unknown_dest = 0
@@ -166,7 +167,7 @@ def computePageRanks(l=0.9, maxIterations=1000, atol=1e-10):
 
         # Check convergence
         if np.allclose(p, q, atol=atol):
-            break
+            break  # equal within tolerance, stop iterating
 
         p = q
 
@@ -181,16 +182,58 @@ def outputPageRanks(p: np.ndarray, top_n=10):
         print(f"{pr:.6f}\t{airport}")
 
 
-def main(argv=None):
-    readAirports("airports.txt")
-    readRoutes("routes.txt")
+def main(airports, routes, l, maxIterations, atol, top_n):
+    readAirports(airports)
+    readRoutes(routes)
     time1 = time.time()
-    p, iterations = computePageRanks()
+    p, iterations = computePageRanks(l, maxIterations, atol)
     time2 = time.time()
-    outputPageRanks(p)
-    print("#Iterations:", iterations)
-    print("Time of computePageRanks():", time2 - time1)
+
+    if iterations == maxIterations:
+        print(f"Did not converge after {iterations} iterations", file=sys.stderr)
+    else:
+        print("#Iterations:", iterations, file=sys.stderr)
+
+    outputPageRanks(p, top_n)
+    print("Time of computePageRanks():", time2 - time1, file=sys.stderr)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--airports",
+        default="airports.txt",
+        help="The file containing the airports data",
+    )
+    parser.add_argument(
+        "--routes",
+        default="routes.txt",
+    )
+    parser.add_argument(
+        "-l", "--damping-factor", type=float, default=0.9, help="The damping factor"
+    )
+    parser.add_argument(
+        "--tolerance",
+        type=float,
+        default=1e-10,
+        help="The tolerance for the stopping criterion",
+    )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=1000,
+        help="The maximum number of iterations",
+    )
+    parser.add_argument(
+        "--top", type=int, default=10, help="The number of top airports to print"
+    )
+
+    args = parser.parse_args()
+    main(
+        args.airports,
+        args.routes,
+        args.damping_factor,
+        args.max_iterations,
+        args.tolerance,
+        args.top,
+    )
