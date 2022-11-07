@@ -46,7 +46,8 @@ edgeList = []  # list of Edge
 edgeHash = dict()  # hash of edge to ease the match
 airportList = []  # list of Airport
 airportHash = dict()  # hash key IATA code -> Airport
-steadyState = [] #the steady stade probability vector
+steadyState = []  # the steady stade probability vector
+
 
 def readAirports(fd):
     print(f"Reading Airport file from {fd}")
@@ -88,10 +89,10 @@ def readRoutes(fd):
                 edge.count += 1
             else:
                 cont += 1
-                r.departureNum = temp[1]
-                r.departure = temp[2]
-                r.arrivalNum = temp[3]
-                r.arrival = temp[4]
+                # r.departureNum = temp[1]
+                # r.departure = temp[2]
+                # r.arrivalNum = temp[3]
+                # r.arrival = temp[4]
                 r.count = 1
                 r.id = temp[2] + temp[4]
                 edgeList.append(r)
@@ -100,29 +101,33 @@ def readRoutes(fd):
     print(f"There were {cont} Routes with IATA codes")
 
 
-def computePageRanks():
+def computePageRanks(l=0.9, maxIterations=1000, epsilon=1e-10):
+    # compute the PageRanks of the airports
+    #
+    # l: the damping factor
+    # maxIterations: the maximum number of iterations
+    # epsilon: the convergence criterion
+
     global steadyState
-    size = len(airportList)
-    l = 0.9
-    p = np.zeros((size, size))
-    i = 0
-    j = 0
-    for i in range(size):
-        a1 = airportList[i]
-        for j in range(size):
-            a2 = airportList[j]
+    n = len(airportList)
+    p = np.zeros((n, n))
+
+    for i, a1 in enumerate(airportList):
+        for j, a2 in enumerate(airportList):
             edge = edgeHash.get(a1.code + a2.code)
             if edge:
                 p[i][j] = edge.count  # fill the matrix with the out degrees
-        p[i] = normalize(
-            p[i]
-        )  # Normalising the matrix sometimes gives a total of 0.9999...
-        if np.sum(p[i]) > 0.2:  # applying the google algorithm
-            p[i] = p[i] * l + (1 - l) / size
-        else:  # case of all zero vectors
-            p[i] = p[i] * 0 + 1 / size
 
-    pi = np.ones(size, float) / size  # uniform PI(0)
+        # Normalising the matrix sometimes gives a total of 0.9999...
+        p[i] = normalize(p[i])
+
+        if np.sum(p[i]) > 0.2:  # applying the google algorithm
+            p[i] = p[i] * l + (1 - l) / n
+        else:  # case of all zero vectors
+            p[i] = np.ones(n, float) / n
+
+    # Create vector with 1/n in each position
+    pi = np.ones(n, float) / n  # uniform PI(0)
 
     # p = np.array([[0.8,0.15,0.05],
     #                 [0.7,0.2,0.1],
@@ -130,24 +135,25 @@ def computePageRanks():
     # pi = np.array([0.2,0.2,0.6])
 
     # Stationary distribution
-    n = 0
-    while n < 1000:
-        n += 1
+    for n in range(maxIterations):
         res = np.dot(pi, p)
         diff = pi - res
-        if max(np.abs(diff)) < 10e-10:
+        if max(np.abs(diff)) < epsilon:
             break
         pi = res
-    #print(pi, np.sum(pi))
+
+    print(pi, np.sum(pi))
     steadyState = np.array(pi).copy()
     return n
 
 
 def outputPageRanks():
-    f = open("output.txt","w",encoding="utf-8")
-    for ind in np.argsort(-steadyState):
-        f.write(f"Airport: {airportList[ind].name}, page rank: {steadyState[ind]}\n")
-    f.close()
+    with open("output.txt", "w", encoding="utf-8") as f:
+        for ind in np.argsort(-steadyState):
+            print(
+                f"Airport: {airportList[ind].name}, page rank: {steadyState[ind]}",
+                file=f,
+            )
 
 
 def normalize(vect):
