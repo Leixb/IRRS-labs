@@ -46,7 +46,7 @@ edgeList = []  # list of Edge
 edgeHash = dict()  # hash of edge to ease the match
 airportList = []  # list of Airport
 airportHash = dict()  # hash key IATA code -> Airport
-
+steadyState = [] #the steady stade probability vector
 
 def readAirports(fd):
     print(f"Reading Airport file from {fd}")
@@ -101,6 +101,7 @@ def readRoutes(fd):
 
 
 def computePageRanks():
+    global steadyState
     size = len(airportList)
     l = 0.9
     p = np.zeros((size, size))
@@ -137,13 +138,16 @@ def computePageRanks():
         if max(np.abs(diff)) < 10e-10:
             break
         pi = res
-    print(pi, np.sum(pi))
+    #print(pi, np.sum(pi))
+    steadyState = np.array(pi).copy()
     return n
 
 
 def outputPageRanks():
-    pass
-    # write your code
+    f = open("output.txt","w",encoding="utf-8")
+    for ind in np.argsort(-steadyState):
+        f.write(f"Airport: {airportList[ind].name}, page rank: {steadyState[ind]}\n")
+    f.close()
 
 
 def normalize(vect):
