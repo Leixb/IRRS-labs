@@ -182,7 +182,15 @@ def outputPageRanks(p: np.ndarray, top_n=10):
         print(f"{pr:.6f}\t{airport}")
 
 
-def main(airports, routes, l, maxIterations, atol, top_n):
+def main(
+    airports="airports.txt",
+    routes="airports.txt",
+    l: float = 0.9,
+    maxIterations: int = 1000,
+    atol: float = 1e-10,
+    top_n: int = 10,
+    all: bool = False,
+):
     readAirports(airports)
     readRoutes(routes)
     time1 = time.time()
@@ -194,8 +202,13 @@ def main(airports, routes, l, maxIterations, atol, top_n):
     else:
         print("#Iterations:", iterations, file=sys.stderr)
 
-    outputPageRanks(p, top_n)
+    if all:
+        outputPageRanks(p, len(Airport.list))
+    else:
+        outputPageRanks(p, top_n)
     print("Time of computePageRanks():", time2 - time1, file=sys.stderr)
+
+    return p, iterations, time2 - time1
 
 
 if __name__ == "__main__":
@@ -224,8 +237,12 @@ if __name__ == "__main__":
         default=1000,
         help="The maximum number of iterations",
     )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "--top", type=int, default=10, help="The number of top airports to print"
+    )
+    group.add_argument(
+        "--all", action="store_true", help="Print all airports, not just the top ones"
     )
 
     args = parser.parse_args()
@@ -236,4 +253,5 @@ if __name__ == "__main__":
         args.max_iterations,
         args.tolerance,
         args.top,
+        args.all,
     )
