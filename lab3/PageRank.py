@@ -30,7 +30,7 @@ class Airport:
         return f"{self.code}\t{self.pageIndex}\t{self.name}"
 
 
-class Route:
+class Edge:
     def __init__(
         self, departure=None, arrival=None, depNum=None, arrivNum=None, ident=None
     ):
@@ -75,7 +75,7 @@ def readRoutes(fd):
     routesTxt = open(fd, "r")
     cont = 0
     for line in routesTxt.readlines():
-        r = Route()
+        r = Edge()
         try:
             temp = line.split(",")
             if len(temp[2]) != 3 or len(temp[4]) != 3:
