@@ -1,175 +1,193 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 import sys
 import time
-from collections import namedtuple
+from heapq import nlargest
+from typing import Dict, List, Tuple
 
 import numpy as np
+import polars as pl
 
 
 class Edge:
-    def __init__(self, origin=None):
-        self.origin = ...  # write appropriate value
-        self.weight = ...  # write appropriate value
+
+    list: List[Edge] = []  # list of Edge
+    hash: Dict[Tuple[int, int], Edge] = dict()  # hash of edge to ease the match
+
+    def register(self, destination: int):
+        # Adds edge to the list and hash using origin->destination as key
+        self.pageIndex = len(Edge.list)
+        Edge.list.append(self)
+        Edge.hash[(self.origin, destination)] = self
+
+    def __init__(self, origin: int, weight: float = 1.0):
+        self.origin = origin
+        self.weight = weight
 
     def __repr__(self):
         return "edge: {0} {1}".format(self.origin, self.weight)
 
-    ## write rest of code that you need for this class
-
 
 class Airport:
+
+    list: List[Airport] = []  # list of Airport
+    hash: Dict[str, Airport] = dict()  # hash key IATA code -> Airport
+
+    def register(self):
+        # Adds airport to list and hash
+        self.pageIndex = len(Airport.list)
+        Airport.list.append(self)
+        Airport.hash[self.code] = self
+
     def __init__(self, iden=None, name=None):
         self.code = iden
         self.name = name
-        self.routes = []
+        self.routes = []  # input edges
         self.routeHash = dict()
-        self.outweight = ...  # write appropriate value
+        self.outweight = 0
 
     def __repr__(self):
         return f"{self.code}\t{self.pageIndex}\t{self.name}"
 
+    def addRoute(self, edge: Edge):
+        # Adds incoming route (assumes it doesn't exist)
+        self.routes.append(edge)
+        self.routeHash[edge] = edge
 
-class Edge:
-    def __init__(
-        self, departure=None, arrival=None, depNum=None, arrivNum=None, ident=None
-    ):
-        self.departure = departure
-        self.departureNum = depNum
-        self.arrival = arrival
-        self.arrivalNum = arrivNum
-        self.id = ident
-        self.count = 0
+    def addOutweight(self, weight: float):
+        # Adds weight to outgoing routes
+        self.outweight += weight
 
-
-edgeList = []  # list of Edge
-edgeHash = dict()  # hash of edge to ease the match
-airportList = []  # list of Airport
-airportHash = dict()  # hash key IATA code -> Airport
-steadyState = []  # the steady stade probability vector
+    def addRouteInc(self, edge: Edge):
+        # Adds route if it doesn't exist, otherwise increments weight
+        # Since we use polars to group repeated routes, this is not
+        # used
+        if edge in self.routeHash:
+            self.routeHash[edge].weight += edge.weight
+        else:
+            self.addRoute(edge)
 
 
 def readAirports(fd):
-    print(f"Reading Airport file from {fd}")
-    airportsTxt = open(fd, "r", encoding="utf-8")
-    cont = 0
-    for line in airportsTxt.readlines():
-        a = Airport()
-        try:
-            temp = line.split(",")
-            if len(temp[4]) != 5:
-                raise Exception("not an IATA code")
-            a.name = temp[1][1:-1] + ", " + temp[3][1:-1]
-            a.code = temp[4][1:-1]
-        except Exception as inst:
-            pass
-        else:
-            cont += 1
-            airportList.append(a)
-            airportHash[a.code] = a
-    airportsTxt.close()
-    print(f"There were {cont} Airports with IATA code")
+    print("Reading Airport file from {0}".format(fd))
+    for code, name in (
+        pl.scan_csv(
+            fd, has_header=False, null_values=["\\N", ""], infer_schema_length=200
+        )
+        .select(
+            [
+                pl.col("column_5").alias("code"),
+                pl.concat_str(["column_2", "column_4"], sep=", ").alias("name"),
+            ]
+        )
+        .filter(pl.col("code").str.lengths() == 3)  # filter out non-IATA codes
+        .collect()
+        .rows()
+    ):
+        Airport(iden=code, name=name).register()
+
+    print(f"There were {len(Airport.list)} Airports with IATA code")
 
 
 def readRoutes(fd):
     print(f"Reading Routes file from {fd}")
-    routesTxt = open(fd, "r")
-    cont = 0
-    for line in routesTxt.readlines():
-        r = Edge()
-        try:
-            temp = line.split(",")
-            if len(temp[2]) != 3 or len(temp[4]) != 3:
-                raise Exception("not an IATA code")
-        except Exception as inst:
-            pass
-        else:
-            edge = edgeHash.get(temp[2] + temp[4])
-            if edge:
-                edge.count += 1
-            else:
-                cont += 1
-                # r.departureNum = temp[1]
-                # r.departure = temp[2]
-                # r.arrivalNum = temp[3]
-                # r.arrival = temp[4]
-                r.count = 1
-                r.id = temp[2] + temp[4]
-                edgeList.append(r)
-                edgeHash[r.id] = r
-    routesTxt.close()
-    print(f"There were {cont} Routes with IATA codes")
+
+    unknown_orig = 0
+    unknown_dest = 0
+
+    # We use polars to read the file and aggregate the routes
+    for destination, df in (
+        pl.scan_csv(
+            fd,
+            has_header=False,
+            null_values=["\\N", ""],
+        )
+        .select(
+            [
+                pl.col("column_3").alias("origin"),
+                pl.col("column_5").alias("destination"),
+            ]
+        )
+        .groupby(["origin", "destination"])
+        .agg(pl.count())
+        .collect()
+        .partition_by("destination", as_dict=True)
+    ).items():
+        airport_dest = Airport.hash.get(destination)
+        if not airport_dest:
+            unknown_dest += 1
+            continue
+
+        for origin, _, count in df.rows():
+            origin_obj = Airport.hash.get(origin)
+            if not origin_obj:
+                unknown_orig += 1
+                continue
+
+            origin_id = origin_obj.pageIndex
+
+            edge = Edge(origin=origin_id, weight=count)
+            edge.register(destination=airport_dest.pageIndex)
+
+            origin_obj.addOutweight(count)
+
+            airport_dest.addRoute(edge)
+
+    print(f"There were {unknown_orig} routes with unknown origin")
+    print(f"There were {unknown_dest} routes with unknown destination")
+    print(f"There were {len(Edge.list)} added routes")
 
 
-def computePageRanks(l=0.9, maxIterations=1000, epsilon=1e-10):
+def computePageRanks(l=0.9, maxIterations=1000, atol=1e-10):
     # compute the PageRanks of the airports
     #
     # l: the damping factor
     # maxIterations: the maximum number of iterations
-    # epsilon: the convergence criterion
+    # atol: the tolerance for the stopping criterion
 
-    global steadyState
-    n = len(airportList)
-    p = np.zeros((n, n))
+    # number of airports (vertices in G)
+    n = len(Airport.list)
 
-    for i, a1 in enumerate(airportList):
-        for j, a2 in enumerate(airportList):
-            edge = edgeHash.get(a1.code + a2.code)
-            if edge:
-                p[i][j] = edge.count  # fill the matrix with the out degrees
+    p = np.ones(n) / n  # initial probability vector
+    for iterations in range(maxIterations):
+        q = np.zeros(n)  # new probability vector
+        for i, airport in enumerate(Airport.list):
+            for edge in airport.routes:
+                q[i] += (
+                    p[edge.origin] * edge.weight / Airport.list[edge.origin].outweight
+                )
+            # Apply the damping factor
+            q[i] = l * q[i] + (1 - l) / n
 
-        # Normalising the matrix sometimes gives a total of 0.9999...
-        p[i] = normalize(p[i])
+        # Normalize q
+        q /= np.sum(q)
 
-        if np.sum(p[i]) > 0.2:  # applying the google algorithm
-            p[i] = p[i] * l + (1 - l) / n
-        else:  # case of all zero vectors
-            p[i] = np.ones(n, float) / n
-
-    # Create vector with 1/n in each position
-    pi = np.ones(n, float) / n  # uniform PI(0)
-
-    # p = np.array([[0.8,0.15,0.05],
-    #                 [0.7,0.2,0.1],
-    #                 [0.5,0.3,0.2]])
-    # pi = np.array([0.2,0.2,0.6])
-
-    # Stationary distribution
-    for n in range(maxIterations):
-        res = np.dot(pi, p)
-        diff = pi - res
-        if max(np.abs(diff)) < epsilon:
+        # Check convergence
+        if np.allclose(p, q, atol=atol):
             break
-        pi = res
 
-    print(pi, np.sum(pi))
-    steadyState = np.array(pi).copy()
-    return n
+        p = q
 
-
-def outputPageRanks():
-    with open("output.txt", "w", encoding="utf-8") as f:
-        for ind in np.argsort(-steadyState):
-            print(
-                f"Airport: {airportList[ind].name}, page rank: {steadyState[ind]}",
-                file=f,
-            )
+    return p, iterations
 
 
-def normalize(vect):
-    size = np.sum(vect)
-    if size != 0:
-        vect = vect / size
-    return vect
+def outputPageRanks(p: np.ndarray, top_n=10):
+    pr_airports = zip(Airport.list, p)
+
+    print(f"Top {top_n} airports by PageRank:")
+    for airport, pr in nlargest(top_n, pr_airports, key=lambda x: x[1]):
+        print(f"{pr:.6f}\t{airport}")
 
 
 def main(argv=None):
     readAirports("airports.txt")
     readRoutes("routes.txt")
     time1 = time.time()
-    iterations = computePageRanks()
+    p, iterations = computePageRanks()
     time2 = time.time()
-    outputPageRanks()
+    outputPageRanks(p)
     print("#Iterations:", iterations)
     print("Time of computePageRanks():", time2 - time1)
 
