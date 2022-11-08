@@ -1,0 +1,19 @@
+Reading Airport file from airports.txt
+There were 5744 Airports with IATA code
+Reading Routes file from routes.txt
+#Iterations: 178
+Time of computePageRanks(): 5.839825391769409
+There were 179 routes with unknown origin
+There were 144 routes with unknown destination
+There were 39468 added routes
+Top 10 airports by PageRank:
+0.006756	ORD	2801	Chicago Ohare Intl, United States
+0.006746	LAX	2460	Los Angeles Intl, United States
+0.006320	DEN	2723	Denver Intl, United States
+0.005738	LHR	399	Heathrow, United Kingdom
+0.005566	CDG	994	Charles De Gaulle, France
+0.005500	PEK	2346	Capital Intl, China
+0.005426	FRA	293	Frankfurt Main, Germany
+0.005070	SIN	2305	Changi Intl, Singapore
+0.005034	ATL	2655	Hartsfield Jackson Atlanta Intl, United States
+0.004978	AMS	445	Schiphol, Netherlands

@@ -182,6 +182,8 @@
                     ".latexmkrc"
                     (nix-filter.matchExt "tex")
                     (nix-filter.matchExt "bib")
+                    (nix-filter.matchExt "lua")
+                    "lua"
                   ];
                 };
                 nativeBuildInputs = with pkgs; [

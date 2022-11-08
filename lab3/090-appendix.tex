@@ -1,0 +1,14 @@
+%! TEX root = **/report.tex
+\appendix
+\section{Appendix - code}
+\inputminted{python}{./PageRank.py}
+\pagebreak
+\section{Appendix - outputs}%
+\label{ap:out}
+\subsection*{Damping factor 0.9}
+Output for: \mintinline{bash}{./PageRank.py -l 0.9 --tolerance 1e-10}:
+\inputminted{text}{./output.txt}
+
+\subsection*{Damping factor 0.8}
+Output for: \mintinline{bash}{./PageRank.py -l 0.9 --tolerance 1e-10}:
+\inputminted{text}{./output_08.txt}

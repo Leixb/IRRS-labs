@@ -1,0 +1,145 @@
+%! TEX root = **/report.tex
+\section*{Implementation Challenges and Decisions}
+The edge class was created to contains the required information for a route. it contains the origin of the route, the weight and a tuple with the origin and destination to identify it.
+Adding the routes was done by filtering out the elements where departure or destination airport were missing, then adding them to our list and incrementing the weights.
+
+We decided to have several parameters to compute the page rank algorithm:
+\begin{itemize}\itemsep0em
+    \item \texttt{lambda} : the damping factor
+    \item \texttt{maxIterations} : The maximum number of loops
+    \item \texttt{atol} : The threshold at which we consider two matrix equals.
+\end{itemize}
+
+
+We decided to start with a initial uniform probability vector.
+Then we applied the algorithm with the normalised weights and the chosen Lambda.
+
+To analyse the result, we made another program to benchmark the algorithm with various values for lambda and atol the following section present them.
+
+\section*{Results}
+
+\Cref{fig:results_iter} shows the number of iterations for different
+values of the damping factor $l$ and the tolerance $\epsilon$ for the
+convergence criterion. Note that the vertical axis is logarithmic.
+We can see that the number of iterations increases exponentially with
+the damping factor. And that the tolerance has a multiplicative effect
+on the number of iterations, the smaller the tolerance, the more
+iterations we require. However, the damping factor has a much
+stronger effect.
+
+With damping factor $l=0.99$, we reach the maximum number of iterations
+of 1000 we set on our experiments.
+
+\begin{figure}[H]
+	\begin{tikzpicture}
+		\begin{axis}[
+				width=0.8\textwidth,
+				height=0.4\textwidth,
+				xlabel={Damping factor ($\lambda$)},
+				ylabel={Iterations (log)},
+				legend pos=outer north east,
+				ymode=log,
+				xmin=0.47,
+				xmax=1.03,
+			]
+            \addlegendimage{empty legend}
+			\addplot[
+				scatter/classes={
+						1.0e-6={only marks,black},
+						1.0e-7={only marks,mark=triangle*,orange},
+						1.0e-8={only marks,mark=triangle*,green},
+						1.0e-9={only marks,mark=square*,blue},
+						1.0e-10={only marks,red}% no comma
+					},
+				scatter,
+				scatter src=explicit symbolic,
+			] table [only marks, x=damping, y=iterations, col sep=comma, meta=tolerance] {./results.csv};
+        \legend{\textbf{Tol},$10^{-6}$, $10^{-7}$, $10^{-8}$, $10^{-9}$, $10^{-10}$};
+			\addplot+[red,mark=none] coordinates {(0.4,1000) (1.1,1000)};
+			% \addlegendentry{Max. iterations};
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Convergence of PageRank with different damping factors and tolerances}%
+	\label{fig:results_iter}
+\end{figure}
+
+In \cref{fig:results_pr} we show how the damping factor affects the distribution of values of the PageRank.
+Once again, the vertical axis is in logarithmic scale to help distinguish the results.
+We can observe that by increasing the damping factor, the value of the highest Page ranks increases while
+the median and lower values of PageRank decrease. Additionally, there is in increase of the variability
+in the distribution of PageRank when we increase the damping factor.
+
+\begin{figure}[H]
+\begin{tikzpicture}
+	\begin{axis}[
+			width=0.8\textwidth,
+            height=0.4\textwidth,
+			xlabel={Damping factor ($\lambda$)},
+			ylabel={PageRank (log)},
+            ymode=log,
+            boxplot/draw direction=y,
+            xtick={1,2,3,4,5,6,7,8,9,10,11},
+            xticklabels={0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,0.99},
+            cycle list={{red}},
+		]
+        \directlua{% select the Tolerance value for the boxplot
+            Tolerance = "1.0e-10"
+            dofile("lua/boxplot.lua")
+        }
+	\end{axis}
+\end{tikzpicture}
+\caption{PageRank's distribution for different damping factors (atol=$10^{-10}$)}%
+\label{fig:results_pr}
+\end{figure}
+
+% \begin{figure}[H]
+% 	\begin{tikzpicture}
+% 		\begin{axis}[
+% 				width=0.8\textwidth,
+% 				height=0.4\textwidth,
+% 				xlabel={Iterations},
+% 				ylabel={Execution time (s)},
+% 			]
+% 			\addplot table [only marks, x=iterations, y=time, col sep=comma] {./results.csv};
+% 		\end{axis}
+% 	\end{tikzpicture}
+% 	\caption{Execution time as a function of the iterations}%
+% \end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Top 15 Airports ($\lambda = 0.9,\; \texttt{atol} = 10^{-10}$)}
+\label{tab:top20}
+\begin{tabular}{rrcll}
+\toprule
+   & PageRank & IATA          & Name                            & Country              \\ \midrule
+1  & 0.006756 & \texttt{ORD}  & Chicago Ohare Intl              & United States        \\
+2  & 0.006746 & \texttt{LAX}  & Los Angeles Intl                & United States        \\
+3  & 0.006320 & \texttt{DEN}  & Denver Intl                     & United States        \\
+4  & 0.005738 & \texttt{LHR}  & Heathrow                        & United Kingdom       \\
+5  & 0.005566 & \texttt{CDG}  & Charles De Gaulle               & France               \\
+6  & 0.005500 & \texttt{PEK}  & Capital Intl                    & China                \\
+7  & 0.005426 & \texttt{FRA}  & Frankfurt Main                  & Germany              \\
+8  & 0.005070 & \texttt{SIN}  & Changi Intl                     & Singapore            \\
+9  & 0.005034 & \texttt{ATL}  & Hartsfield Jackson Atlanta Intl & United States        \\
+10 & 0.004978 & \texttt{AMS}  & Schiphol                        & Netherlands          \\
+11 & 0.004957 & \texttt{JFK}  & John F Kennedy Intl             & United States        \\
+12 & 0.004428 & \texttt{ICN}  & Incheon Intl                    & South Korea          \\
+13 & 0.004406 & \texttt{BCN}  & Barcelona                       & Spain                \\
+14 & 0.004367 & \texttt{DFW}  & Dallas Fort Worth Intl          & United States        \\
+15 & 0.004338 & \texttt{PVG}  & Pudong                          & China                \\
+%16 & 0.004291 & \texttt{YYZ}  & Lester B Pearson Intl           & Canada               \\
+%17 & 0.004279 & \texttt{DXB}  & Dubai Intl                      & United Arab Emirates \\
+%18 & 0.004056 & \texttt{HKG}  & Hong Kong Intl                  & Hong Kong            \\
+%19 & 0.004049 & \texttt{DME}  & Domododevo                      & Russia               \\
+%20 & 0.003985 & \texttt{SYD}  & Sydney Intl                     & Australia            \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\Cref{tab:top20} represents the results obtained with our program and the default parameters $\lambda = 0.9,\; \texttt{atol} = 10^{-10}$). we observed that the value of $\lambda$ affects the results, specially with lower
+values. With higher values the change is less noticeable:
+%The result vary a little when changing them
+(for example with lambda = 0.8 the top 3 is \texttt{LAX}, \texttt{ORD}, \texttt{DEN})%
+\footnote{The results can be found in \cref{ap:out}}
+but overall are showing the same trend.
