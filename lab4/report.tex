@@ -1,0 +1,68 @@
+%! TEX root = **/000-main.tex
+% vim: spell spelllang=en:
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PREAMBLE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{001-preamble}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% EXTRA PACKAGES / CONFIG
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{titling}
+\usepackage{cancel}
+\usepackage{booktabs}
+\usepackage{graphicx}
+% Set default figure size
+\setkeys{Gin}{width=.9\textwidth, keepaspectratio}
+
+% Center figures by default
+\makeatletter
+\g@addto@macro\@floatboxreset\centering
+\makeatother
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% METADATA
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% remove when using \maketitle:
+% \renewcommand\and{\\[\baselineskip]}
+
+\title{Lab Session 4\\ \Large \normalfont
+  MapReduce\\ IRRS
+}
+\author{
+  Aleix Boné
+\and
+  Marc Maynou
+}
+\date{Fall 2022}
+
+\setlength{\droptitle}{-5.0em}
+% \pretitle{%
+% \begin{center}
+% \includegraphics[width=0.9\linewidth]{figures/institution-logo.pdf}
+% }
+% \posttitle{%
+% \end{center}
+% }
+
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TITLE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Default title or use titlepage.tex
+
+\renewcommand\and{\\[\baselineskip]}
+    \include{005-titlepage}
+
+\setlength{\parskip}{1em plus 0.5em minus 0.2em}
+
+%\pagebreak
+\null
+\vfill
+\printbibliography
+\end{document}
