@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 .. module:: MRKmeansDef
 
@@ -6,16 +7,18 @@ MRKmeansDef
 
 :Description: MRKmeansDef
 
-    
+
 
 :Authors: bejar
-    
 
-:Version: 
 
-:Created on: 17/07/2017 7:42 
+:Version:
+
+:Created on: 17/07/2017 7:42
 
 """
+
+from collections import Counter
 
 from mrjob.job import MRJob
 from mrjob.step import MRStep
@@ -31,11 +34,29 @@ class MRKmeansStep(MRJob):
         Compute here the Jaccard similarity between  a prototype and a document
         prot should be a list of pairs (word, probability)
         doc should be a list of words
-        Words must be alphabeticaly ordered
+        Words must be alphabetically ordered
 
         The result should be always a value in the range [0,1]
         """
-        return 1
+
+        i = 0
+        j = 0
+        inter = 0
+        while i < len(prot) and j < len(doc):
+            if prot[i][0] == doc[j]:
+                inter += 1
+                i += 1
+                j += 1
+            elif prot[i][0] < doc[j]:
+                i += 1
+            else:
+                j += 1
+
+        sum = 0
+        for p in prot:
+            sum += p[1] ** 2
+
+        return inter / (sum + len(doc) - inter)
 
     def configure_args(self):
         """
@@ -79,8 +100,17 @@ class MRKmeansStep(MRJob):
         # Compute map here
         #
 
+        best_prot = None
+        bestsim = 0
+        for prot in self.prototypes:
+            sim = self.jaccard(self.prototypes[prot], lwords)
+            if sim > bestsim:
+                best_prot = prot
+                bestsim = sim
+
+        yield best_prot, (doc, lwords)
         # Return pair key, value
-        yield None, None
+        # yield None, None
 
     def aggregate_prototype(self, key, values):
         """
@@ -100,7 +130,17 @@ class MRKmeansStep(MRJob):
         :return:
         """
 
-        yield None, None
+        word_freq = Counter()
+
+        documents = []
+        for num_docs, doc in enumerate(values):
+            documents.append(doc)
+            word_freq.update(doc[1])
+
+        # New prototype:
+        cp = list(map(lambda x: (x[0], float(x[1]) / num_docs), word_freq.items()))
+
+        yield key, (documents, cp)
 
     def steps(self):
         return [

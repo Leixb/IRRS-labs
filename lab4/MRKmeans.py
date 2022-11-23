@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 .. module:: MRKmeans
 
@@ -22,6 +23,7 @@ import os
 import shutil
 import time
 
+import numpy as np
 from mrjob.util import to_lines
 from MRKmeansStep import MRKmeansStep
 
@@ -45,7 +47,7 @@ if __name__ == "__main__":
     cwd = os.getcwd()
     shutil.copy(cwd + "/" + args.prot, cwd + "/prototypes0.txt")
 
-    nomove = False  # Stores if there has been changes in the current iteration
+    nomove = True  # Stores if there has been changes in the current iteration
     for i in range(args.iter):
         tinit = time.time()  # For timing the iterations
 
@@ -75,9 +77,25 @@ if __name__ == "__main__":
             # Process the results of the script iterating the (key,value) pairs
             for key, value in mr_job1.parse_output(runner1.cat_output()):
                 # You should store things here probably in a datastructure
-                pass
+                new_assign[key] = value[0]
+                new_proto[key] = value[1]
+
+            nomove = new_assign == assign
+
+            # Saves the new prototypes
+            with open(cwd + "/prototypes%d.txt" % (i + 1), "w") as f:
+                for key in new_proto:
+                    f.write(
+                        key
+                        + ":"
+                        + " ".join(map(lambda x: f"{x[0]}+{x[1]}", new_proto[key]))
+                        + "\n"
+                    )
 
             # If your scripts returns the new assignments you could write them in a file here
+            # with open(cwd + '/assignments%d.txt' % (i + 1), 'w') as f:
+            #     for key, value in new_assign.items():
+            #         f.write(key + ':' + " ".join(value) + '\n')
 
             # You should store the new prototypes here for the next iteration
 

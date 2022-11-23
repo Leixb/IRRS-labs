@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 .. module:: IndexFiles2
 
@@ -18,7 +19,7 @@ IndexFiles
 :Authors:
     bejar
 
-:Version: 
+:Version:
 
 :Date:  23/06/2017
 """

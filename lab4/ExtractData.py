@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 .. module:: ExtractData
 
@@ -9,11 +10,11 @@ ExtractData
     Generates vector data representation with the most frequent words
 
 :Authors: bejar
-    
 
-:Version: 
 
-:Created on: 12/07/2017 8:20 
+:Version:
+
+:Created on: 12/07/2017 8:20
 
 """
 

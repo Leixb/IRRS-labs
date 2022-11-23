@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 .. module:: StreamDocs
 
@@ -11,7 +12,7 @@ StreamDocs
 :Authors:
     bejar
 
-:Version: 
+:Version:
 
 :Date:  14/07/2017
 """

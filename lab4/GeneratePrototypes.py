@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 .. module:: GeneratePrototypes
 
@@ -11,7 +12,7 @@ GeneratePrototypes
 :Authors:
     bejar
 
-:Version: 
+:Version:
 
 :Date:  14/07/2017
 """
