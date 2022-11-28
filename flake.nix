@@ -54,6 +54,12 @@
           # numpy = super.numpy.override { preferWheel = true; };
           # polars = super.polars.override { preferWheel = true; };
           nbconvert = super.nbconvert.overridePythonAttrs (old: { postPatch = if preferWheels then null else old.postPatch; });
+          mrjob = super.mrjob.overridePythonAttrs (old: {
+            nativeBuildInputs = old.nativeBuildInputs ++ [ self.setuptools ];
+            postInstall = ''
+              sed -i 's/ZipFile(path, /& strict_timestamps=False, /' $out/lib/${python.libPrefix}/site-packages/mrjob/util.py
+            '';
+          });
         });
 
         lab1-data =
