@@ -2,28 +2,19 @@
 
 set -eo pipefail
 
-NCLUST=${NCLUST:-10}
+export NCLUST=${NCLUST:-10}
 
-# for i in ./results/documents_0.0_0.1_250.txt;
-for i in ./results/documents*; do
+DATA="${OUTPUT:-data}"
 
-    base="$(basename "$i" .txt)"
-    prefix="${base%_*}"
+generate_prototypes() {
+    folder="$1"
+    echo "Generating prototypes for $folder"
+    ./GeneratePrototypes.py \
+        --data "$folder/documents.txt" \
+        --output "$folder/prototype.txt" \
+        --nclust "$NCLUST" | tee "$folder/prototypes.log"
+}
 
-    outdir="prototypes/${prefix}"
-    mkdir -p "$outdir"
+export -f generate_prototypes
 
-    cp "$i" "$outdir/documents.txt"
-
-    ./GeneratePrototypes.py --data "$i" --output "$outdir/prototype.txt" --nclust "$NCLUST"
-
-done
-
-for prot in ./prototypes/*; do
-    echo "Processing $prot"
-    ./MRKmeans.py \
-        --prot "prototype.txt" \
-        --ncores 10 \
-        --output "$prot" \
-        --docs "$prot/documents.txt"
-done
+parallel generate_prototypes ::: "${DATA}/"*/

@@ -55,7 +55,7 @@ if __name__ == "__main__":
     outdir = pathlib.Path(args.output)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    shutil.copy(outdir.joinpath(args.prot), outdir.joinpath("prototypes0.txt"))
+    shutil.copy(args.prot, outdir.joinpath("prototypes0.txt"))
 
     moved = False  # Stores if there has been changes in the current iteration
     for i in range(args.iter):

@@ -305,6 +305,7 @@
                     pandoc
                     texlive.combined.scheme-full
                     parallel
+                    bc
                   ];
 
                 inherit (self.checks.${system}.pre-commit-check) shellHook;
