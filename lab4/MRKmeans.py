@@ -20,6 +20,7 @@ MRKmeans
 
 import argparse
 import os
+import pathlib
 import shutil
 import time
 
@@ -34,6 +35,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--prot", default="prototypes.txt", help="Initial prototpes file"
     )
+    parser.add_argument("--output", default=".", help="Output directory")
     parser.add_argument("--docs", default="documents.txt", help="Documents data")
     parser.add_argument("--iter", default=5, type=int, help="Number of iterations")
     parser.add_argument(
@@ -44,8 +46,10 @@ if __name__ == "__main__":
     assign = {}
 
     # Copies the initial prototypes
-    cwd = os.getcwd()
-    shutil.copy(cwd + "/" + args.prot, cwd + "/prototypes0.txt")
+    outdir = pathlib.Path(args.output)
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    shutil.copy(outdir.joinpath(args.prot), outdir.joinpath("prototypes0.txt"))
 
     nomove = True  # Stores if there has been changes in the current iteration
     for i in range(args.iter):
@@ -61,9 +65,9 @@ if __name__ == "__main__":
                 "local",
                 args.docs,
                 "--file",
-                cwd + "/prototypes%d.txt" % i,
+                str(outdir.joinpath("prototypes%d.txt" % i)),
                 "--prot",
-                cwd + "/prototypes%d.txt" % i,
+                str(outdir.joinpath("prototypes%d.txt" % i)),
                 "--num-cores",
                 str(args.ncores),
             ]
@@ -83,10 +87,10 @@ if __name__ == "__main__":
             nomove = new_assign == assign
 
             # Saves the new prototypes
-            with open(cwd + "/prototypes%d.txt" % (i + 1), "w") as f:
+            with open(outdir.joinpath("prototypes%d.txt" % (i + 1)), "w") as f:
                 for key in new_proto:
                     f.write(
-                        key
+                        str(key)
                         + ":"
                         + " ".join(map(lambda x: f"{x[0]}+{x[1]}", new_proto[key]))
                         + "\n"

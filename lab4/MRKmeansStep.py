@@ -52,11 +52,11 @@ class MRKmeansStep(MRJob):
             else:
                 j += 1
 
-        sum = 0
-        for p in prot:
-            sum += p[1] ** 2
+        # sum = 0
+        # for p in prot:
+        #     sum += p[1] ** 2
 
-        return inter / (sum + len(doc) - inter)
+        return inter / float(len(prot) + len(doc) - inter)
 
     def configure_args(self):
         """
@@ -99,14 +99,16 @@ class MRKmeansStep(MRJob):
         #
         # Compute map here
         #
+        prot_iter = iter(self.prototypes)
 
-        best_prot = None
-        bestsim = 0
-        for prot in self.prototypes:
-            sim = self.jaccard(self.prototypes[prot], lwords)
-            if sim > bestsim:
+        best_prot = next(prot_iter)
+        best_dist = self.jaccard(self.prototypes[best_prot], lwords)
+
+        for prot in prot_iter:
+            distance = self.jaccard(self.prototypes[prot], lwords)
+            if distance < best_dist:
                 best_prot = prot
-                bestsim = sim
+                best_dist = distance
 
         yield best_prot, (doc, lwords)
         # Return pair key, value
@@ -133,14 +135,16 @@ class MRKmeansStep(MRJob):
         word_freq = Counter()
 
         documents = []
-        for num_docs, doc in enumerate(values):
+        for doc, words in values:
             documents.append(doc)
-            word_freq.update(doc[1])
+            word_freq.update(words)
+
+        num_docs = len(documents)
 
         # New prototype:
         cp = list(map(lambda x: (x[0], float(x[1]) / num_docs), word_freq.items()))
 
-        yield key, (documents, cp)
+        yield key, (sorted(documents), sorted(cp))
 
     def steps(self):
         return [
