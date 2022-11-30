@@ -19,14 +19,13 @@ MRKmeans
 """
 
 import argparse
-import os
 import pathlib
 import shutil
 import time
+from multiprocessing import cpu_count
+from typing import Dict, List
 
-import numpy as np
-from mrjob.util import to_lines
-from MRKmeansStep import MRKmeansStep
+from MRKmeansStep import Assignment, Key, MRKmeansStep, Prototype
 
 __author__ = "bejar"
 
@@ -39,11 +38,18 @@ if __name__ == "__main__":
     parser.add_argument("--docs", default="documents.txt", help="Documents data")
     parser.add_argument("--iter", default=5, type=int, help="Number of iterations")
     parser.add_argument(
-        "--ncores", default=2, type=int, help="Number of parallel processes to use"
+        "-n",
+        "--ncores",
+        "--nproc",
+        default=min(1, cpu_count() - 2),
+        type=int,
+        help="Number of parallel processes to use",
     )
 
     args = parser.parse_args()
-    assign = {}
+    assign: Dict[Key, Assignment] = {}
+
+    assign_values: List[Assignment] = []
 
     # Copies the initial prototypes
     outdir = pathlib.Path(args.output)
@@ -51,7 +57,7 @@ if __name__ == "__main__":
 
     shutil.copy(outdir.joinpath(args.prot), outdir.joinpath("prototypes0.txt"))
 
-    nomove = True  # Stores if there has been changes in the current iteration
+    moved = False  # Stores if there has been changes in the current iteration
     for i in range(args.iter):
         tinit = time.time()  # For timing the iterations
 
@@ -76,39 +82,45 @@ if __name__ == "__main__":
         # Runs the script
         with mr_job1.make_runner() as runner1:
             runner1.run()
-            new_assign = {}
-            new_proto = {}
+
+            new_assign: Dict[Key, Assignment] = {}
+            new_proto: Dict[Key, Prototype] = {}
             # Process the results of the script iterating the (key,value) pairs
             for key, value in mr_job1.parse_output(runner1.cat_output()):
-                # You should store things here probably in a datastructure
-                new_assign[key] = value[0]
-                new_proto[key] = value[1]
+                new_assign[key], new_proto[key] = value
 
-            nomove = new_assign == assign
+        # Check if there has been changes in the assignment
+        #
+        # We cannot use the following, because the names of the
+        # clusters may have swapped:
+        # moved = new_assign != assign
+        #
+        # Instead, we check the ordered assignments of the
+        # clusters:
+        new_assign_values = sorted(new_assign.values())
+        moved = assign_values != new_assign_values
 
-            # Saves the new prototypes
-            with open(outdir.joinpath("prototypes%d.txt" % (i + 1)), "w") as f:
-                for key in new_proto:
-                    f.write(
-                        str(key)
-                        + ":"
-                        + " ".join(map(lambda x: f"{x[0]}+{x[1]}", new_proto[key]))
-                        + "\n"
-                    )
+        assign = new_assign
+        assign_values = new_assign_values
 
-            # If your scripts returns the new assignments you could write them in a file here
-            # with open(cwd + '/assignments%d.txt' % (i + 1), 'w') as f:
-            #     for key, value in new_assign.items():
-            #         f.write(key + ':' + " ".join(value) + '\n')
+        # Saves the new prototypes
+        with open(outdir.joinpath("prototypes%d.txt" % (i + 1)), "w") as f:
+            for key in new_proto:
+                f.write(
+                    key
+                    + ":"
+                    + " ".join(map(lambda x: f"{x[0]}+{x[1]}", new_proto[key]))
+                    + "\n"
+                )
 
-            # You should store the new prototypes here for the next iteration
+        # Saves the new assignments
+        with open(outdir.joinpath("assignments%d.txt" % (i + 1)), "w") as f:
+            for key, value in new_assign.items():
+                f.write(key + ":" + " ".join(value) + "\n")
 
-            # If you have saved the assignments, you can check if they have changed from the previous iteration
-
-        print(f"Time= {(time.time() - tinit)} seconds")
-
-        if nomove:  # If there is no changes in two consecutive iteration we can stop
+        # If there is no changes in two consecutive iteration we can stop
+        if not moved:
             print("Algorithm converged")
             break
 
-    # Now the last prototype file should have the results
+        print(f"Time= {(time.time() - tinit)} seconds")

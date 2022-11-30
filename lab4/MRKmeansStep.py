@@ -19,17 +19,27 @@ MRKmeansDef
 """
 
 from collections import Counter
+from typing import Dict, Generator, List, Tuple
 
 from mrjob.job import MRJob
 from mrjob.step import MRStep
 
 __author__ = "bejar"
 
+# A prototype is a list of (word, probability) pairs:
+Prototype = List[Tuple[str, float]]
+Assignment = List[str]  # [doc1, doc2, ...]
+
+# Key-Value of intermediate map-reduce step
+Key = str  # Prototype ID
+Value = Tuple[str, List[str]]  # DocID, [word1, word2, ...]
+
 
 class MRKmeansStep(MRJob):
-    prototypes = {}
 
-    def jaccard(self, prot, doc):
+    prototypes: Dict[str, Prototype] = {}
+
+    def jaccard(self, prot: Prototype, doc: List[str]) -> float:
         """
         Compute here the Jaccard similarity between  a prototype and a document
         prot should be a list of pairs (word, probability)
@@ -52,13 +62,9 @@ class MRKmeansStep(MRJob):
             else:
                 j += 1
 
-        # sum = 0
-        # for p in prot:
-        #     sum += p[1] ** 2
-
         return inter / float(len(prot) + len(doc) - inter)
 
-    def configure_args(self):
+    def configure_args(self) -> None:
         """
         Additional configuration flag to get the prototypes files
 
@@ -67,21 +73,24 @@ class MRKmeansStep(MRJob):
         super(MRKmeansStep, self).configure_args()
         self.add_file_arg("--prot")
 
-    def load_data(self):
+    def load_data(self) -> None:
         """
         Loads the current cluster prototypes
 
         :return:
         """
-        f = open(self.options.prot, "r")
-        for line in f:
-            cluster, words = line.split(":")
-            cp = []
-            for word in words.split():
-                cp.append((word.split("+")[0], float(word.split("+")[1])))
-            self.prototypes[cluster] = cp
+        with open(self.options.prot, "r") as f:
+            for line in f:
+                cluster, words = line.split(":")
+                cp = []
+                for word in words.split():
+                    w, p = word.split("+")
+                    cp.append((w, float(p)))
+                self.prototypes[cluster] = cp
 
-    def assign_prototype(self, _, line):
+    def assign_prototype(
+        self, _, line: str
+    ) -> Generator[Tuple[Key, Value], None, None]:
         """
         This is the mapper it should compute the closest prototype to a document
 
@@ -111,10 +120,10 @@ class MRKmeansStep(MRJob):
                 best_dist = distance
 
         yield best_prot, (doc, lwords)
-        # Return pair key, value
-        # yield None, None
 
-    def aggregate_prototype(self, key, values):
+    def aggregate_prototype(
+        self, key: Key, values: List[Value]
+    ) -> Generator[Tuple[Key, Tuple[Assignment, Prototype]], None, None]:
         """
         input is cluster and all the documents it has assigned
         Outputs should be at least a pair (cluster, new prototype)
@@ -132,7 +141,7 @@ class MRKmeansStep(MRJob):
         :return:
         """
 
-        word_freq = Counter()
+        word_freq: Counter[str] = Counter()
 
         documents = []
         for doc, words in values:
@@ -142,11 +151,11 @@ class MRKmeansStep(MRJob):
         num_docs = len(documents)
 
         # New prototype:
-        cp = list(map(lambda x: (x[0], float(x[1]) / num_docs), word_freq.items()))
+        prot = sorted(map(lambda x: (x[0], float(x[1]) / num_docs), word_freq.items()))
 
-        yield key, (sorted(documents), sorted(cp))
+        yield key, (sorted(documents), prot)
 
-    def steps(self):
+    def steps(self) -> List[MRStep]:
         return [
             MRStep(
                 mapper_init=self.load_data,
