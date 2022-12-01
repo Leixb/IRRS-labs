@@ -19,6 +19,9 @@ ExtractData
 """
 
 import argparse
+from collections import Counter
+from itertools import dropwhile, islice, takewhile
+from typing import Dict, Set
 
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import NotFoundError
@@ -56,11 +59,14 @@ if __name__ == "__main__":
 
     try:
         client = Elasticsearch(timeout=1000)
-        voc = {}  # global vocabulary frequency
-        docterms = {}  # document vocabulary
+
+        voc: Counter[str] = Counter()
+        docterms: Dict[str, Set[str]] = {}  # document vocabulary
+
         print("Querying all documents ...")
         sc = scan(client, index=index, query={"query": {"match_all": {}}})
         print("Generating vocabulary frequencies ...")
+
         for s in sc:
             docpath = s["_source"]["path"]
             docterms[docpath] = set()  # use a set for efficient operations
@@ -68,52 +74,48 @@ if __name__ == "__main__":
                 index=index, doc_type="document", id=s["_id"], fields=["text"]
             )
             if "text" in tv["term_vectors"]:
-                for t in tv["term_vectors"]["text"]["terms"]:
-                    docterms[docpath].add(t)
-                    if t in voc:
-                        voc[t] += 1
-                    else:
-                        voc[t] = 1
-        lwords = []
+                terms = tv["term_vectors"]["text"]["terms"]
+                docterms[docpath].update(terms.keys())
+                voc.update(terms.keys())
 
-        # Compute overall words relative frequency
-        fmax = 0
-        for v in voc:
-            if voc[v] > fmax:
-                fmax = voc[v]
-            lwords.append((voc[v], v))
+        fmax = voc.most_common(1)[0][1]
 
-        lwords = sorted([(f / fmax, v) for f, v in lwords], reverse=True)
+        actual_max_freq = fmax * maxfreq
+        actual_min_freq = fmax * minfreq
 
-        lwords = [v for f, v in lwords if minfreq <= f <= maxfreq]
+        a = dropwhile(lambda x: x[1] > actual_max_freq, voc.most_common(None))
+        b = takewhile(lambda x: x[1] > actual_min_freq, a)
 
-        if numwords and len(lwords) > numwords:
-            lwords = set(lwords[:numwords])
+        if numwords is None:
+            lwords = [x[0] for x in b]
+        else:
+            lwords = [x[0] for x in islice(b, numwords)]
 
         print("Computing binary term vectors ...")
         for doc in docterms:
             docterms[doc] = docterms[doc].intersection(lwords)
 
         print("Saving data ...")
-        f = open("vocabulary.txt", "w")
-        for p in sorted(lwords):
-            f.write(p.encode("ascii", "replace").decode() + " " + str(voc[p]) + "\n")
-        f.flush()
-        f.close()
-
-        f = open("documents.txt", "w")
-        for doc in docterms:
-            docname = doc.split("/")
-            docname = docname[-2] + "/" + docname[-1]
-            docvec = ""
-            for v in sorted(list(lwords)):
-                docvec += (" " + v) if v in docterms[doc] else ""
-            if docvec:  # writes the document if there are words from the vocabulary
+        with open("vocabulary.txt", "w") as f:
+            for p in lwords:
                 f.write(
-                    docname + ":" + docvec.encode("ascii", "replace").decode() + "\n"
+                    p.encode("ascii", "replace").decode() + " " + str(voc[p]) + "\n"
                 )
-        f.flush()
-        f.close()
+
+        with open("documents.txt", "w") as f:
+            for doc in docterms:
+                # get two last elements of path
+                docname = "/".join(doc.split("/")[-2:])
+                docvec = ""
+                for v in lwords:
+                    docvec += (" " + v) if v in docterms[doc] else ""
+                if docvec:  # writes the document if there are words from the vocabulary
+                    f.write(
+                        docname
+                        + ":"
+                        + docvec.encode("ascii", "replace").decode()
+                        + "\n"
+                    )
 
     except NotFoundError:
-        print("Index %s does not exists" % index)
+        print(f"Index {index} does not exist")
