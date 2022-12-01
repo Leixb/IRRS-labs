@@ -3,7 +3,7 @@
 set -eo pipefail
 
 MAX_FREQ=(0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.1)
-MIN_FREQ=(0.0)
+MIN_FREQ=(0.0 0.025 0.05)
 NUM_WORDS=(100 250)
 
 DATA="${OUTPUT:-data}"
@@ -31,8 +31,8 @@ compute() {
     local num_words="$3"
 
     # check min < max
-    if (($(echo "$min_freq > $max_freq" | bc -l))); then
-        echo "Skipping: min_freq ($min_freq) > max_freq ($max_freq)"
+    if (($(echo "$min_freq >= $max_freq" | bc -l))); then
+        echo "Skipping: min_freq ($min_freq) >= max_freq ($max_freq)"
         return
     fi
 
