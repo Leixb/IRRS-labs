@@ -91,6 +91,8 @@ if __name__ == "__main__":
         else:
             lwords = [x[0] for x in islice(b, numwords)]
 
+        lwords = sorted(lwords)
+
         print("Computing binary term vectors ...")
         for doc in docterms:
             docterms[doc] = docterms[doc].intersection(lwords)
