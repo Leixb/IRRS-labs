@@ -3,7 +3,7 @@
 set -eo pipefail
 
 DATA="${OUTPUT:-data}"
-NCORES="${NCORES:-10}"
+NCORES="${NCORES:-6}"
 ITER="${ITER:-10}"
 
 for prot in "${DATA}/"*/; do
