@@ -23,5 +23,5 @@ $1 == "REP" { rep = $2 }
 $1 == "Iteration" { iter = $2 }
 
 $1 == "Time=" {
-    print ncores, iter, rep, $2
+    print ncores, rep, iter, $2
 }

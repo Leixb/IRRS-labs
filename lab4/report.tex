@@ -10,6 +10,13 @@
 % EXTRA PACKAGES / CONFIG
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,calc}
+\usetikzlibrary{arrows.meta}
+\tikzset{>={Latex[width=3mm,length=3mm]}}
+
+\usepackage{caption}
+
 \usepackage{titling}
 \usepackage{cancel}
 \usepackage{booktabs}
@@ -61,10 +68,25 @@
 
 \setlength{\parskip}{1em plus 0.5em minus 0.2em}
 
-\include{010-content}
+\include{010-implementation}
+\include{020-experimentation}
+\include{030-results}
+
+\section*{Conclusions}
+
+We have implemented a MapReduce \emph{K-means} for documents in Python and tested it
+with the \emph{arXiv-abs} dataset. We have found that the algorithm is
+parallelizable using map-reduce and that the higher the size of the vocabulary, the
+better it parallelizes. The algorithm is very sensitive to the set of words
+used for computing the distances. Despite trying lots of different ranges of word frequencies it
+we did not converge to more than 3 clusters in any case.
+
+This is probably due to the fact that the method of choosing the words from the frequency list
+is not the best one since it is difficult to isolate words related to specific fields of study.
+Other metrics such as \emph{TF-IDF} could be used to improve the results.
 
 %\pagebreak
-\null
-\vfill
-\printbibliography
+% \null
+% \vfill
+% \printbibliography
 \end{document}

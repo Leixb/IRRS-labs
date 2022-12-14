@@ -3,3 +3,5 @@
 
 *.pdf
 !figures/*.pdf
+data
+*.ipynb

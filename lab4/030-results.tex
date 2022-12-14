@@ -1,0 +1,103 @@
+%! TEX root = **/report.tex
+\section{Results}
+
+Finally, we took a look at the clusters we obtained with our experimentation. As we have seen,
+there are 8 different categories in the dataset but there are some categories that are very broad
+and probably can be split into more specific categories. Therefore, we started with 20 clusters.
+
+We run a similar script to the one used on the experiments from the previous sections but using
+a more limited search space, a higher number of iterations and 20 clusters as the initial
+number of clusters.
+
+The initial expectation was to find clusters that encompassed the subcategories in some
+of the bigger and broader categories (mainly computer science and astrophysics). However,
+we found that in all the cases where the algorithm converged, there were never
+more than 3 clusters.
+
+In the cases where the algorithm did not converge, we found that most of the time
+there was one or two clusters that were very large and encompassed most of the
+documents, this is a weakness of \emph{K-means}. Even then, they did not have more
+than 7 clusters (which is less than the number of categories).
+
+The most interesting results were with the frequency range $[0.08,\, 0.1]$ shown
+in \ref{tab:results}. As we can see, the first cluster is much larger and takes
+most of the documents from all categories. The other smaller clusters have some dominant categories
+such as math, quantum physics and computer science for cluster 2 and astrophysics for cluster 3.
+
+Cluster 3 is the most interesting since it takes a lot of the documents from the astrophysics category
+and the only other two categories that are significantly represented are the two from HEP (High energy
+physics) which are very related to astrophysics.
+
+\begin{table}[H]
+	\caption{Distribution of documents of each category through the cluster}%
+	\label{tab:results}%
+	\begin{tabular}{lS[table-format=2.2]S[table-format=2.2]S[table-format=2.2]S[table-format=2.2]}
+		\toprule
+		\multirow{2}{*}{\textbf{Category}} & \multicolumn{4}{c}{\textbf{Cluster}}                        \\
+		                                   & {1}                                    & {2}   & {3}   & {4}  \\
+		\midrule
+		% astro-ph & 7414   & 311    & 4395   & 939    \\
+		% cond-mat & 4451   & 265    & 15     & 300    \\
+		% cs       & 15909  & 1979   & 14     & 963    \\
+		% hep-ph   & 1308   & 82     & 111    & 108    \\
+		% hep-th   & 1282   & 66     & 40     & 71     \\
+		% math     & 5525   & 1056   & 12     & 370    \\
+		% physics  & 5709   & 565    & 50     & 518    \\
+		% quant-ph & 1562   & 223    & 2      & 86     \\
+		astro-ph                           & 56.77                                  & 2.38  & 33.65 & 7.19 \\
+		cond-mat                           & 88.47                                  & 5.27  & 0.30  & 5.96 \\
+		cs                                 & 84.33                                  & 10.49 & 0.07  & 5.10 \\
+		hep-ph                             & 81.29                                  & 5.10  & 6.90  & 6.71 \\
+		hep-th                             & 87.87                                  & 4.52  & 2.74  & 4.87 \\
+		math                               & 79.35                                  & 15.17 & 0.17  & 5.31 \\
+		physics                            & 83.44                                  & 8.26  & 0.73  & 7.57 \\
+		quant-ph                           & 83.40                                  & 11.91 & 0.11  & 4.59 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+In \cref{tab:vocabulary} we show some of the words that are used in this execution (out of 100). We can
+see that there are some field specific words such as ``galaxy'' and ``neural'' but also other
+more generic words such as ``best'', or ``common''.
+
+\begin{table}[H]
+	\caption{Vocabulary for frequency range $[0.08,\, 0.1]$ (top 20)}%
+	\label{tab:vocabulary}%
+	\begin{tabular}{rl}
+		\toprule
+		Occurrences & Word     \\
+		\midrule
+		4946        & select   \\
+		4946        & constant \\
+		4920        & neural   \\
+		4912        & shown    \\
+		4879        & address  \\
+		4857        & key      \\
+		4824        & spatial  \\
+		4769        & art      \\
+		4745        & reveal   \\
+		4723        & us       \\
+		\bottomrule
+	\end{tabular}
+	\hspace{2em}
+	\begin{tabular}{rl}
+		\toprule
+		Occurrences & Word    \\
+		\midrule
+		4722        & open    \\
+		4710        & galaxi  \\
+		4704        & complet \\
+		4675        & part    \\
+		4665        & finit   \\
+		4642        & best    \\
+		4639        & contain \\
+		4632        & probabl \\
+		4628        & common  \\
+		4604        & signal  \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+% data/arxiv_abs_30/100_0.08_0.1/vocabulary.txt
+
+% data/arxiv_abs_30/100_0.04_0.07/vocabulary.txt

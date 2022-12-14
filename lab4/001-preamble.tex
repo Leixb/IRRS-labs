@@ -1,4 +1,4 @@
-%! TEX root = **/000-main.tex
+%! TEX root = **/report.tex
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% LaTeX preamble, load in main.tex with: \input{preamble}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -110,6 +110,7 @@
 
 % Split cell in lines and more formating options inside table
 \usepackage{array, multirow, multicol, makecell}
+\usepackage{threeparttable}
 
 %%%
 % bug fix for booktabs + xltabular incompatibility
@@ -135,7 +136,7 @@
 %% SIUNITX
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%\usepackage[alsoload=hep]{siunitx}          % SI units and uncertainties
+\usepackage{siunitx}          % SI units and uncertainties
 %\sisetup{locale = FR}                       % Commas and so on for spanish
 %\sisetup{separate-uncertainty=true}
 %\sisetup{

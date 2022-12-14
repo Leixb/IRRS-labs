@@ -1,0 +1,86 @@
+%! TEX root = **/report.tex
+
+
+% DATA: https://github.com/Leixb/IRRS-labs/releases/download/v4.0.0rc/data.tar.gz
+
+% To deliver:
+% You will have to deliver a report with the results that you have obtained with the dataset,
+% explaining
+% how you have generated the datasets,
+% what kind of clusters you have found in the data
+% and the effect of the size of the vocabulary (number of words selected for representing the documents)
+% and the impact of the number of mappers/reducers in the computational cost.
+% You can also include in the document the
+% main difficulties/choices you had made while implementing this lab session’s
+
+\section*{Introduction}
+In this deliverable we will explore the implementation of the \emph{K-Means} algorithm
+for clustering similar words through the \emph{MapReduce} computational paradigm.
+
+\section{Implementation}
+
+\subsection{MapReduce KMeansStep.py}
+
+We followed the implementation as outlined in the assignment:
+
+\begin{tikzpicture}[every node/.style={text centered, minimum height=1cm, rectangle, draw}, node distance=0.5cm and 2cm]
+    \node (load)  {load\_data};
+    \node[right=of load] (assign0)  {assign\_prototype};
+    \node[above=of assign0,minimum width=3.7cm] (assign1)  {assign\_prototype};
+    \node[draw=none, below=of assign0, node distance=0.1cm and 2cm] (dots)  {$\vdots$};
+    \node[below=of dots,minimum width=3.7cm, node distance=0.1cm and 2cm] (assign2)  {assign\_prototype};
+    \node[right=of assign0,minimum width=3.7cm] (aggregate)  {\texttt{aggregate\_prototype}};
+
+    \draw[->] (load) -- (assign0);
+    \draw[->] (load.10) -- (assign1.west);
+    \draw[->] (load.350) -- (assign2.west);
+    \draw[->] (assign0) -- (aggregate);
+    \draw[->] (assign1.east) -- (aggregate.170);
+    \draw[->] (assign2.east) -- (aggregate.190);
+\end{tikzpicture}
+
+Where each mapper loads the prototype of each cluster from the provided prototype file and then
+computed for each document the Jaccard distance to each prototype. Then it assigns the
+prototype with smallest distance to it and emits it to the reducer.
+
+The reducer takes all the documents assigned for each prototype (cluster) and computes the
+new prototype from the frequencies of the words in the documents assigned to it.
+
+In our implementation, we used the python data structure \emph{Counter} from the
+collections built-in library to efficiently compute the frequencies of the words. This
+structure uses a dictionary to store the occurrences of each word.
+
+We considered using two heaps to keep a list of the words and documents sorted as they
+are obtained from the mappers. This could theoretically improve the performance
+in some cases since we would not have to sort the data at the end of the reducer and
+instead the sort is done as the data is obtained. However, we could not justify
+this change since the data is not that big and the sorting is not that expensive in our case.
+
+\subsection{MapReduce KMeans.py}
+
+In this script, we performed the background work to run the \emph{KMeans-Step} multiple
+times until the prototypes converge.
+
+The only thing we had to do was to save the prototypes in the correct file and format
+so that the mappers could load them. And then process the results to check for convergence.
+
+\subsubsection{Convergence}
+
+To check for convergence, our initial approach was to check if the prototypes were the same,
+but we quickly realized that floating point precision issues made this approach unreliable.
+One workaround we tried was using \emph{numpy.isclose} or \emph{numpy.allclose} to do the
+comparison with a small tolerance for numerical errors. This worked but we found that a better
+approach was to check if the assigned documents to each consecutive prototype were the same.
+
+To do so, we modified the \emph{KMeans-Step} to emit the list of assigned documents
+as well as the prototype for each cluster, then we can check if the set of
+assigned documents was the same that the previous prototype. This indicates that the
+algorithm has converged.
+
+Another issue was that for some reason, the assigned prototypes swapped names, meaning
+that sometimes the cluster 0 would be named 1 and the cluster 1 named 0 in the next iteration.
+To solve this, we ignored the cluster names and sorted the list of assigned documents for each
+cluster before comparing them.
+
+Given that we had the information of the assigned documents, we decided to saved it into a file
+in order to be able to analyze the clusters later.

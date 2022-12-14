@@ -1,0 +1,293 @@
+%! TEX root = **/report.tex
+\section{Experimentation}
+Once the \emph{K-means} algorithm was fully implemented, we proceeded to test its execution with the \textit{arxiv-abs} dataset.
+
+\subsection{Dataset}
+
+Before trying different parameters and experimenting on the data, we first did a small analysis of the
+documents provided.
+
+The dataset of \emph{arxiv-abs} contains 55\,760 documents from 8 different categories. The documents
+consist of the abstracts of the papers published in the \emph{arXiv} repository. However, the categories
+are not balanced, as shown in \cref{tab:arxiv-abs-categories}. We have to keep this in mind when
+analyzing the obtained clusters.
+
+% ls $DATA/arxiv_abs/* | awk 'BEGIN {cnt = 0} $1 ~ ":$" {if (cnt != 0) print cat,cnt; cat = $1; cnt = 0; } {if (cat != $1) cnt++;} END {print cat,
+% cnt}' | sed 's#.*/##' | sed 's#\.updates.*:##' | tr ' ' '&'
+%
+% find  $DATA/arxiv_abs/ -type f -exec wc -w {} \; | \
+% sed  's#/.*arxiv_abs/##' counts | sed 's/\.upda.*//' | \
+% awk 'BEGIN {sum=0; n=1;} curr!=$2 { print sum,n,sum/n,curr; curr=$2; sum=0; n=0; } { sum+=$1; n++; } END { print sum,n,sum/n,curr}'
+\begin{table}[H]
+	\begin{threeparttable}[t]
+		\caption{Number of documents and average words per document for each category}%
+		\label{tab:arxiv-abs-categories}
+		\begin{tabular}{llS[table-format=7]S[table-format=5]S[table-format=3.3]}
+			\toprule
+			{Category}                             & {Abbreviation} & {Documents} & {Total words} & {Avg. words} \\
+			\midrule
+			Computer Science                       & cs             & 18882       & 5123399       & 271.338      \\
+			Astro physics                          & astro-ph       & 13062       & 3679842       & 281.721      \\
+			\addlinespace
+			Mathematics                            & math           & 6986        & 1900888       & 272.1        \\
+			Physiscs                               & physics        & 6847        & 1859268       & 271.545      \\
+			Condensed Matter                       & cond-mat       & 5033        & 1350533       & 268.336      \\
+			\addlinespace
+			Quantum physics                        & quant-ph       & 1876        & 510053        & 271.883      \\
+			HEP\tnote{1} \textendash Phenomenology & hep-ph         & 1610        & 442873        & 275.076      \\
+			HEP\tnote{1} \textendash Theory        & hep-th         & 1464        & 402725        & 275.085      \\
+			\bottomrule
+		\end{tabular}
+		\begin{tablenotes}
+			\item[1] High Energy Physics
+		\end{tablenotes}
+	\end{threeparttable}
+\end{table}
+
+\Cref{tab:arxiv-abs-categories} also shows that the average number of words per document is similar for
+all categories, which is to be expected given that the documents are abstracts. We can also see that
+there are mainly 3 areas of research: \emph{Computer Science}, \emph{Mathematics} and \emph{Physics}.
+The latter with various subcategories, some of which could be very similar to each other (e.g. HEP)
+
+\subsubsection{Zipf}
+
+We took the code from laboratory session 1 and fitted it to the \emph{arxiv-abs} dataset. The results
+are shown in \cref{fig:zipf}. As we can see, the data seems to fit Zipf's law, except for the very
+few first words and the tail. This is relevant because it means that there are very few words
+with high frequency and many words with lower frequency. Latter, we will see that this affects the
+size of the vocabulary when setting minimum and maximum frequencies.
+
+\begin{figure}[H]
+    \includegraphics{zipf_loglog}%
+    \label{fig:zipf}
+    \caption{Zipf plot for the \emph{arxiv-abs} dataset}
+\end{figure}
+
+\subsection{Goal}
+
+The clusters obtained using our algorithm heavily depend on the subset of words used to compute
+the distances between documents (the vocabulary). If we take words that are common
+across all documents, we will find one big cluster with all the documents. If we take words that are
+too niche, we will find one cluster per document. Our aim is to find a good balance where
+we obtain meaningful clusters from which we can gain some insight.
+
+In the code we have 3 hyper-parameters that determine the words used in the vocabulary:
+maximum and minimum frequency (relative to the most common word) and the maximum number
+of words. The program will then take all the words with frequencies between the minimum and
+the maximum, and if there are more than the $n$ maximum number of words, it will take the $n$
+most common words. Note that in this case, the minimum frequency is ignored.
+
+Additionally, we benchmarked the execution time of the algorithm with different number
+of processors, to see if the algorithm scales well and estimate the benefits of using
+map-reduce parallelization.
+
+\subsection{Implementation}
+
+We departed from the \emph{ExtractData.py} script provided in the laboratory session and modified it
+to our needs. We wanted to be able to compute the clusters for different subsets of words by varying
+the hyper-parameters outlined in the previous section. To do so, we split the code in two parts,
+one that computed the frequencies of all words in the dataset and saved the result into a pickle file.
+The second part took the list of parameters and computed the vocabulary and prototype for each valid
+combination using the data from the pickle. By doing so we avoid having to recompute the frequencies each
+time, and we can also easily parallelize the computation of vocabularies and prototypes.
+
+Finally, we could run the \emph{MRKmeans.py} script for each combination of parameters and
+save the result. The results are saved in a plain text file with the full output of the program
+which is then parsed using \emph{gnu-awk} to extract the relevant information.
+
+% Similarly, too low a minimum frequency will result in taking too many words, which will make the clusters
+% too specific.
+
+\subsection{Vocabulary size}
+
+The first set of experiments was oriented to altering the words used to represent the documents. This is controlled by setting the minimum and maximum values for the frequency of the words selected when executing the system. The following tests were performed by fixing the initial set of clusters to 10 and the maximum number of iterations to 10 as well. We repeated the execution for two sizes of the word set: 100 and 250.
+
+Firstly, we set the minimum frequency to 0, to observe how altering the maximum frequency in isolation could change the execution. The table below presents the results obtained for the set of 100 words:
+
+\begin{table}[H]
+	\begin{threeparttable}[t]
+		\caption{MapReduce behavior when changing the maximum frequency with a set of 100 words}
+		\begin{tabular}{S[table-format=1.2] c c c S[table-format=2.3] S[table-format=1.3]}
+			\toprule
+			{Max frequency} & Clusters & Iterations \tnote{1} & {\makecell{Total Time         \\ (ms)}} & {\makecell{Avg. iteration time \\ (ms)}} \\
+			\midrule
+			0.01            & 3        & \textbf{10}          & 29.625                & 2.962 \\
+			0.02            & 2        & 3                    & 9.461                 & 3.153 \\
+			0.03            & 3        & \textbf{10}          & 34.177                & 3.417 \\
+			0.04            & 2        & 3                    & 10.832                & 3.610 \\
+			0.05            & 1        & 3                    & 11.524                & 3.841 \\
+			0.06            & 3        & \textbf{10}          & 41.341                & 4.134 \\
+			0.07            & 1        & 3                    & 14.388                & 4.796 \\
+			0.08            & 1        & 3                    & 15.160                & 5.053 \\
+			0.09            & 1        & 3                    & 15.571                & 5.190 \\
+			\addlinespace
+			0.1             & 1        & 4                    & 18.889                & 4.722 \\
+			0.2             & 1        & 2                    & 10.597                & 5.298 \\
+			0.3             & 1        & 2                    & 11.502                & 5.751 \\
+			0.4             & 1        & 2                    & 11.777                & 5.888 \\
+			0.5             & 1        & 2                    & 11.567                & 5.783 \\
+			0.6             & 1        & 2                    & 11.753                & 5.876 \\
+			0.7             & 1        & 2                    & 11.705                & 5.852 \\
+			\bottomrule
+		\end{tabular}
+		\begin{tablenotes}
+			\item[1] The iterations are shown in bold when they are the maximum number of iterations (i.e. the algorithm did not converge).
+		\end{tablenotes}
+	\end{threeparttable}
+\end{table}
+
+As it can be seen, for values below 0.07 the execution seems to have an unpredictable behavior, having a convergence rate of 50\%. On the other hand, the number of clusters generated is generally different than 1, which, if our goal is to divide words in groups, seems like a more appropriate choice. From 0.07 we only obtain one cluster by the end of the execution and the algorithm always converges, doing so in just 2 iterations from a maximum frequency of 0.1 onward.
+
+These results are corroborated by the experiments with the word set size of 250, in which considerably similar results were obtained; only differing in the time needed to complete the execution (which makes sense, given that there are more words to process).
+
+Noticing these results, we concluded that the most reasonable value for the maximum frequency should be below 0.1. Values closer to 0 would give a bigger number of clusters while being more unpredictable, whereas values closer to 0.1 would have a more stable execution but the number of clusters would be reduced. We have to take into account that we are using a small number of words, so it is likely that by using a bigger set, the number of clusters would be overall bigger. Nevertheless, this small value helps us to see the effects of altering the frequencies much better.
+
+In order to find reasonable values for the minimum frequency, we executed the algorithm with values of maximum frequency presented before, narrowing the interval to [0.02, 0.1], due to the arguments presented in the previous paragraph. The values for the minimum frequency would be between 0.1 and the maximum frequency (i.e. for maximum frequency = 0.04, we can test minimum frequency values of 0.01, 0.02 and 0.03) and gather the results. Logically, the smaller values would appear in more experiments than the bigger values, so we would average the results to obtain a comparison. We are aware of the possible biases of this approach, but it is still useful to obtain some conclusion. The results are presented in the table below:
+
+\begin{table}[h!]
+	\begin{tabular}{c c c c c c}
+		\toprule
+		Min frequency & Experiments & Clusters & Iterations & Total time & Avg. iteration time \\
+		\midrule
+		0.01          & 9           & 1.4      & 3.89       & 16.976     & 4.361               \\
+		0.02          & 8           & 1.25     & 3.55       & 16.752     & 4.718               \\
+		0.03          & 7           & 1.1      & 3.14       & 15.465     & 4.921               \\
+		0.04          & 6           & 1.16     & 3.16       & 15.347     & 4.858               \\
+		0.05          & 5           & 1.2      & 3.2        & 15.579     & 4.683               \\
+		0.06          & 4           & 1.25     & 3.25       & 15.671     & 4.829               \\
+		0.07          & 3           & 1.33     & 3          & 14.771     & 4.923               \\
+		0.08          & 2           & 1.5      & 3.5        & 14.865     & 4.671               \\
+		0.09          & 1           & 1        & 3          & 13.764     & 4.588               \\
+		\bottomrule
+	\end{tabular}
+	\caption{MapReduce behavior when changing the minimum frequency}
+\end{table}
+
+When executing these experiments we were expecting the lower values for minimum frequency to generate a higher number of clusters, whereas the bigger values should generate less clusters, given that we are narrowing down the selection of words. Nonetheless, we noticed an interesting pattern, which is that when the minimum frequency got very close to the maximum frequency (e.g. minimum frequency = 0.07 and maximum frequency = 0.08), the number of clusters was generally different than 1, hence the values of the table. We can attribute this to the fact that closing the frequency interval a lot makes the remaining words present enough dissimilarity to generate different clusters. In fact, for most of these cases the number of words was less than the threshold of 100 introduced as a parameter. These results are summarized in the following image:
+
+\includegraphics{figures/clusters_per_freq.png}
+
+As for the rest of values of the table, they follow along with the explanation of the previous paragraph: a higher number of clusters implies more iterations to compute them, which requires more time to execute. The results obtained for the set of 250 words presents a similar trend, just with higher cost times. In this latter case, the reduction in the number of words from the 250 threshold is even more noticeable when the frequencies are very close.
+
+As for a final set of ``ideal'' values, we have selected 0.08 and 0.1 as they represent a middle point in between low values (which would result in more clusters but some unexpected behavior) and high values (stable behavior but very similar words).
+
+\subsection{Mappers and Reducers and execution time}
+
+By default, the given script is executed using two mappers and two reducers,
+which, a priori, seems inefficient, as a higher number of processes would
+complete the execution faster. In order to test this hypothesis, we altered the
+\textit{ncores} flag, using values from 1 to 7 and check how this variation
+impacted the execution time, doing so for the two word sets generated
+beforehand. The maximum number of iterations was fixed to 10, as well as the
+initial number of clusters. For each number of cores and for each vocabulary
+size 10 executions were triggered, summarizing the average results obtained in
+the following tables.
+
+\begin{table}
+	\caption{MapReduce behavior when changing the number of cores. Vocabulary size of 100}
+    \begin{tabular}{c S[table-format=1.3] S[table-format=2.3] S[table-format=1.3]}
+		\toprule
+        {Num cores} & {First iteration} & {Total time} & {Avg time per iteration} \\
+		\midrule
+		1         & 3.565           & 49.102     & 5.455                  \\
+		2         & 2.407           & 31.236     & 3.470                  \\
+		3         & 2.299           & 26.896     & 2.989                  \\
+		4         & 2.229           & 24.834     & 2.760                  \\
+		5         & 2.238           & 23.716     & 2.635                  \\
+		6         & 2.231           & 23.113     & 2.568                  \\
+        \addlinespace
+		7         & 2.689           & 27.937     & 3.104                  \\
+        \bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{table}
+	\caption{MapReduce behavior when changing the number of cores. Vocabulary size of 250}
+    \begin{tabular}{c S[table-format=1.3] S[table-format=3.3] S[table-format=2.3]}
+		\toprule
+        {Num cores} & {First iteration} & {Total time} & {Avg time per iteration} \\
+		\midrule
+		1         & 4.429           & 148.248    & 16.472                 \\
+		2         & 3.009           & 81.236     & 9.026                  \\
+		3         & 2.714           & 60.836     & 6.759                  \\
+		4         & 2.591           & 49.904     & 5.544                  \\
+		5         & 2.515           & 43.991     & 4.887                  \\
+		6         & 2.472           & 39.894     & 4.432                  \\
+        \addlinespace
+		7         & 2.990           & 50.240     & 5.582                  \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \includegraphics{ex-iter}
+    \caption{Execution time for different for each iteration}%
+    \label{fig:time-iter}%
+\end{figure}
+
+\Cref{fig:time-iter} visualizes the discrepancy between the iteration time of the first
+iteration in comparison to the rest (we explain the cause latter).
+To prevent it from skewing the results, we excluded it from the visualization
+shown in \cref{fig:time-cores}. Where, we can see the results from the previous
+tables.
+
+The fact that the first iteration is always considerably quicker than the
+others is due to the fact that on this iteration the clusters are
+``stored'' in a single document file each. Therefore, the operations needed to calculate
+the centroids are more immediate and quicker. For the other iterations, the
+centroid needs to be calculated through the documents assigned to each cluster,
+which implies a longer list of words to go through, which considerably increases
+the time needed to calculate the similarity. We also noticed that the execution
+time for the 3rd and 4th iterations of the 250 words vocabulary is considerably
+higher than the rest, which may be caused by the fact that the clusters are not
+well defined yet and the computation of the centroids are more complex.
+
+\begin{figure}[H]
+    \includegraphics{ex-cores}
+    \caption{Execution time for different number of cores 100 and 250 words}%
+    \label{fig:time-cores}%
+\end{figure}
+
+The first conclusion is that the size of the vocabulary used does impact the
+execution time. We can observe that the values of the second table are always
+higher than in the first one, which makes sense as the amount of words is more
+than doubled. On the other hand, it is clear to see that the more cores used,
+the lesser the time needed to execute the whole process. This is specially true
+when jumping from 1 to 2 cores, and from 2 to 3. From this point onward the
+difference is not that noticeable.
+
+With 7 cores, the execution time increases, this is due to the fact that
+the machine where the experiments were executed has 6 cores, and therefore
+using more than 6 cores for the computation is detrimental to the performance
+since the operating system has to switch between processes.
+
+Notice that the dataset with 250 words shows a stepper decrease in the
+execution time, which hints that it parallelizes better than the one with 100.
+We can show this by plotting the speedup as a function of the number of cores:
+
+\begin{figure}[H]
+    \includegraphics{speedup}
+    \caption{Execution time for different number of cores 100 and 250 words}%
+    \label{fig:speedup}%
+\end{figure}
+
+From \cref{fig:speedup} we can see how the algorithm adheres to the Amdahl's
+law, which states that the speedup of a program is limited by the fraction of
+serial code in the program. With the dataset of 100 words, we can see that we
+are reaching a maximum speedup of around 2.1 and even with our limited
+number of cores (6), the speedup is reaching a stable value around 2.2. On the
+other hand, with 250 words, the speedup is much higher (3.7) and we cannot appreciate
+yet what is the expected maximum speedup. From this we can conclude that with
+higher number of words, the parallelizable fraction of the program increases
+and thus the speedup is higher, and we benefit more from the MapReduce.
+
+% However, when the number of cores is 7, the time does increase once more. This
+% signals that using more cores is not always the best solution. This might seem
+% counter-intuitive, as the more cores used, the more the work should be
+% distributed and the faster the algorithm should execute. However, we need to
+% take into account that there is an additional cost to using more cores, which is
+% the overhead required to coordinate and synchronize all the processes. Given the
+% results obtained, it would seem that for both vocabulary sized the optimal value
+% is 6 cores, as with 7 cores the result gets worse and, presumably, increasing
+% the value even more would result in even worse results.
+
