@@ -1,0 +1,77 @@
+%! TEX root = **/report.tex
+% vim: spell spelllang=en:
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PREAMBLE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{001-preamble}
+
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{statistics}
+% \usepgfplotslibrary{external}
+% \tikzexternalize
+
+% \usepackage{siunitx}
+\usepackage[separate-uncertainty]{siunitx}
+
+\usepackage{fancyvrb}
+\usepackage{tabularray}
+\UseTblrLibrary{siunitx}
+\UseTblrLibrary{booktabs}
+\usepackage{fancyhdr}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% EXTRA PACKAGES / CONFIG
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Set default figure size
+\setkeys{Gin}{width=.9\textwidth, keepaspectratio}
+
+% Center figures by default
+\makeatletter
+\g@addto@macro\@floatboxreset\centering
+\makeatother
+
+% \usepackage[normalem]{ulem}
+% \usepackage{dsfont}
+% \usepackage{tikz}
+% % \usepackage{tikzexternal}
+% \usepackage{pgfplots}
+
+% \usetikzlibrary{shapes,arrows,positioning,calc}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% METADATA
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% remove when using \maketitle:
+\renewcommand\and{\\[\baselineskip]}
+
+\title{\Huge Laboratory Session 4 \\ Network Analysis \\[1em]
+\Large IRRS}
+\author{Aleix Boné \and }
+\date{Fall 2022}
+
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TITLE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Default title or use titlepage.tex
+
+%\maketitle
+\include{005-titlepage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SECTIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Paragraph spacing (placed after ToC)
+\setlength{\parskip}{1em plus 0.5em minus 0.2em}
+%\setlength{\parindent}{0pt}
+
+\include{010-content}
+
+\end{document}
