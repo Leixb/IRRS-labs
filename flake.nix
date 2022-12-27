@@ -18,14 +18,10 @@
       inputs.flake-utils.follows = "flake-utils";
     };
 
-    nltk_data_src = {
-      url = "github:nltk/nltk_data";
-      flake = false;
-    };
 
   };
 
-  outputs = inputs@{ self, nixpkgs, flake-utils, pre-commit-hooks, nltk_data_src, ... }:
+  outputs = inputs@{ self, nixpkgs, flake-utils, pre-commit-hooks, ... }:
 
     flake-utils.lib.eachDefaultSystem (system:
       let
@@ -91,16 +87,6 @@
             ln -s ${novels} $out/novels
             ln -s ${arxiv_abs} $out/arxiv_abs
             unzip ${newsgroups} -d $out
-          '';
-
-        NLTK_DATA = pkgs.runCommand "nltk_data"
-          {
-            buildInputs = with pkgs; [ python2 unzip ];
-            src = nltk_data_src;
-            COLLECTION = "all";
-          }
-          ''
-            NLTK_DATA_DIR=$out bash $src/tools/download.sh "$COLLECTION"
           '';
 
         py-env = { groups ? [ ] }: pkgs.poetry2nix.mkPoetryEnv {
@@ -291,7 +277,6 @@
               }: pkgs.mkShellNoCC {
                 name = "python-poetry-${name}";
 
-                inherit NLTK_DATA;
                 DATA = lab1-data;
 
                 buildInputs =
