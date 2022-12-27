@@ -93,6 +93,7 @@
           inherit python preferWheels overrides groups;
           pyproject = ./pyproject.toml;
           poetrylock = ./poetry.lock;
+          projectDir = "";
         };
 
         lab-list = with lib; builtins.attrNames (filterAttrs
