@@ -6,7 +6,6 @@
 
 import argparse
 import pathlib
-import shutil
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
@@ -19,13 +18,3 @@ if __name__ == "__main__":
 
     out = pathlib.Path(args.output)
     out.mkdir(parents=True, exist_ok=True)
-
-    # We should generate the outputs properly
-    # But since it takes a while, we just copy
-    # the pre-generated ones to the appropriate folder
-
-    # copy files into folder
-    file_names = ["output.txt", "output_08.txt", "results.csv", "PageRank.py"]
-
-    for file_name in file_names:
-        shutil.copy(file_name, out.parent / file_name)
