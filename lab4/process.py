@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-#!/usr/bin/env python3
 
 # Auxiliary script to build figures and plots for the report
 # This should only rely on the resources available in the repository
@@ -20,3 +19,6 @@ if __name__ == "__main__":
 
     out = pathlib.Path(args.output)
     out.mkdir(parents=True, exist_ok=True)
+
+    for fig in pathlib.Path("figures").glob("*"):
+        shutil.copy(fig, out)
