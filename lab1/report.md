@@ -11,6 +11,10 @@ geometry: margin=1in
 papersize: a4
 fontsize: 12pt
 line-height: 1.5
+colorlinks: true
+linkcolor: black
+citecolor: black
+urlcolor: blue!80!black
 header-includes: |
     \usepackage{booktabs}
     \usepackage{siunitx}
@@ -25,14 +29,9 @@ header-includes: |
     \g@addto@macro\@floatboxreset\centering
     \makeatother
     \setkeys{Gin}{width=0.7\linewidth}
+    \usepackage{hyperref}
     \usepackage{varioref}
     \usepackage{cleveref}
-    \hypersetup{
-        colorlinks = true,
-        linkcolor={black},
-        citecolor={black},
-        urlcolor={blue!80!black}
-    }
 ---
 
 \pagenumbering{gobble}
