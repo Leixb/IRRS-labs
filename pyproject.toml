@@ -35,10 +35,9 @@ Unidecode = "^1.3.4"
 [tool.poetry.group.lab2.dependencies]
 elasticsearch-dsl = "^7.4.0"
 elasticsearch = "<8.0.0"
-wordcloud = "^1.8.2.2"
 
 [tool.poetry.group.lab3.dependencies]
-polars = "^0.14.23"
+polars = "0.14.23"
 altair = "^4.2.0"
 
 
@@ -51,6 +50,8 @@ elasticsearch-dsl = "^7.4.0"
 [tool.poetry.group.lab5.dependencies]
 networkx = "^2.8.8"
 numpy = "^1.23.5"
+elasticsearch = "<8.0.0"
+elasticsearch-dsl = "^7.4.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
