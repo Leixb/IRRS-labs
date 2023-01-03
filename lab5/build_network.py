@@ -1,72 +1,87 @@
 #!/usr/bin/env python
 
+import csv
 import os
 import pathlib
 
+import networkx as nx
+import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-
-# count vectorizer from files in folder
-
-folder = (os.environ.get("DATA") or "./data") + "/arxiv_abs"
-
-# all files in folder and subfolders
-files = filter(lambda x: x.is_file(), pathlib.Path(folder).glob("**/*"))
-
-# vectorizer = CountVectorizer(input='filename')
-vectorizer = TfidfVectorizer(input="filename")
-X = vectorizer.fit_transform(files)
-
-print(X.shape)
-
-# build similarity matrix
-
-import csv
-
-# from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics import pairwise_distances_chunked
 from sklearn.metrics.pairwise import linear_kernel
 
-# this takes too much memory
-# similarity = cosine_similarity(X)
-# similarity = linear_kernel(X, dense_output=False)
-# print(similarity.shape)
+# folder = (os.environ.get("DATA") or "./data") + "/arxiv_abs"
+
+# files = list(filter(lambda x: x.is_file(), pathlib.Path(folder).glob("**/*")))
+# print(files[:5])
+
+# # save file names
+# with open("files.csv", "w") as f:
+#     writer = csv.writer(f)
+#     for i, file in enumerate(files):
+#         writer.writerow([i, file.parent.name, file.name])
+
+# # vectorizer = CountVectorizer(input='filename') # faster alternative to tfidf
+# vectorizer = TfidfVectorizer(input="filename")
+# X = vectorizer.fit_transform(files)
+
+# print(X.shape)
+
+# # build similarity matrix
+
+# # similarity = linear_kernel(X, dense_output=False) # same as cosine_similarity (when TfidfVectorizer is used) but faster
+# # similarity = cosine_similarity(X)
+# # print(similarity.shape)
+
+# # we cannot do this in memory, instead we process it by chunks and reduce it
+# # to an adjacency list using a threshold
+
+# # Adjust threshold so that it is connex
+# threshold = 0.7
 
 
-with open("results.csv", "a") as f:
-    writer = csv.writer(f)
-
-    # process by chunks
-    chunk_size = 1000
-    for i in range(0, X.shape[0], chunk_size):
-        print(i)
-        similarity = linear_kernel(X[i : min(i + chunk_size, X.shape[0])], X)
-        for j in range(similarity.shape[0]):
-            writer.writerow(similarity[j])
-
-# save similarity matrix
-
-# import numpy as np
-
-# np.save('similarity.npy', similarity)
-
-# # convert to boolean with a threshold
-
-# import numpy as np
-
-# threshold = 0.5
-
-# similarity_bool = np.where(similarity > threshold, 1, 0)
-
-# print(similarity_bool.shape)
-
-# # now build the network
-
-# import networkx as nx
-
-# G = nx.from_numpy_matrix(similarity_bool)
-
-# print(nx.info(G))
+# def reduce_func(D_chunk, start):
+#     neigh = [np.flatnonzero(d < threshold) for d in D_chunk]
+#     return neigh
 
 
-# # save pickle
+# gen = pairwise_distances_chunked(
+#     X, metric="cosine", working_memory=None, reduce_func=reduce_func
+# )
 
-# nx.write_gpickle(G, "arxiv_abs.gpickle")
+# adj_list = []
+
+# with open("output.csv", "w") as f:
+#     writer = csv.writer(f)
+#     for i, chunk in enumerate(gen):
+#         print(i)
+
+#         for row in chunk:
+#             row_l = row.tolist()
+#             adj_list.append(row_l)
+#             writer.writerow(row_l)
+
+# read back into adjacency list
+adj_list = []
+with open("output.csv", "r") as f:
+    reader = csv.reader(f)
+    for row in reader:
+        adj_list.append(row)
+
+
+G = nx.Graph()
+
+for i, row in enumerate(adj_list):
+    G.add_edges_from([(i, j) for j in row])
+
+print(nx.info(G))
+
+nx.write_gexf(G, "graph.gexf")
+
+# TODO: fix this
+#
+# - add node attributes (at least the file name)
+# - for some reason there are too many nodes
+# - remove unconnected nodes
+# - remove self loops
+# - skip duplicated edges
