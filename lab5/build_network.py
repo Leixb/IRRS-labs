@@ -3,6 +3,7 @@
 import csv
 import os
 import pathlib
+from itertools import chain
 
 import networkx as nx
 import numpy as np
@@ -10,69 +11,63 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.metrics import pairwise_distances_chunked
 from sklearn.metrics.pairwise import linear_kernel
 
-# folder = (os.environ.get("DATA") or "./data") + "/arxiv_abs"
+folder = (os.environ.get("DATA") or "./data") + "/arxiv_abs"
 
-# files = list(filter(lambda x: x.is_file(), pathlib.Path(folder).glob("**/*")))
-# print(files[:5])
+files = list(filter(lambda x: x.is_file(), pathlib.Path(folder).glob("**/*")))
+print(files[:5])
 
-# # save file names
-# with open("files.csv", "w") as f:
-#     writer = csv.writer(f)
-#     for i, file in enumerate(files):
-#         writer.writerow([i, file.parent.name, file.name])
+# save file names
+with open("files.csv", "w") as f:
+    writer = csv.writer(f)
+    for i, file in enumerate(files):
+        writer.writerow([i, file.parent.name, file.name])
 
-# # vectorizer = CountVectorizer(input='filename') # faster alternative to tfidf
-# vectorizer = TfidfVectorizer(input="filename")
-# X = vectorizer.fit_transform(files)
+# vectorizer = CountVectorizer(input='filename') # faster alternative to tfidf
+vectorizer = TfidfVectorizer(input="filename")
+X = vectorizer.fit_transform(files)
 
-# print(X.shape)
+print(X.shape)
 
-# # build similarity matrix
+# build similarity matrix
 
-# # similarity = linear_kernel(X, dense_output=False) # same as cosine_similarity (when TfidfVectorizer is used) but faster
-# # similarity = cosine_similarity(X)
-# # print(similarity.shape)
+# similarity = linear_kernel(X, dense_output=False) # same as cosine_similarity (when TfidfVectorizer is used) but faster
+# similarity = cosine_similarity(X)
+# print(similarity.shape)
 
-# # we cannot do this in memory, instead we process it by chunks and reduce it
-# # to an adjacency list using a threshold
+# we cannot do this in memory, instead we process it by chunks and reduce it
+# to an adjacency list using a threshold
 
-# # Adjust threshold so that it is connex
-# threshold = 0.7
-
-
-# def reduce_func(D_chunk, start):
-#     neigh = [np.flatnonzero(d < threshold) for d in D_chunk]
-#     return neigh
+# Adjust threshold so that it is connex
+threshold = 0.7
 
 
-# gen = pairwise_distances_chunked(
-#     X, metric="cosine", working_memory=None, reduce_func=reduce_func
-# )
+def reduce_func(D_chunk, start):
+    neigh = [np.flatnonzero(d < threshold) for d in D_chunk]
+    return neigh
 
-# adj_list = []
 
-# with open("output.csv", "w") as f:
-#     writer = csv.writer(f)
-#     for i, chunk in enumerate(gen):
-#         print(i)
+gen = pairwise_distances_chunked(
+    X, metric="cosine", working_memory=None, reduce_func=reduce_func
+)
 
-#         for row in chunk:
-#             row_l = row.tolist()
-#             adj_list.append(row_l)
-#             writer.writerow(row_l)
-
-# read back into adjacency list
 adj_list = []
-with open("output.csv", "r") as f:
-    reader = csv.reader(f)
-    for row in reader:
-        adj_list.append(row)
+
+with open("output.csv", "w") as f:
+    writer = csv.writer(f)
+    for i, chunk in enumerate(gen):
+        print(i)
+
+        for row in chunk:
+            row_l = row.tolist()
+            adj_list.append(row_l)
+            writer.writerow(row_l)
 
 
 G = nx.Graph()
 
 for i, row in enumerate(adj_list):
-    G.add_edges_from([(i, j) for j in row])
+    # add only if i < j
+    G.add_edges_from([(i, j) for j in row if i < j])
 
 print(nx.info(G))
 
