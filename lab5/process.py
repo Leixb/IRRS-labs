@@ -6,6 +6,7 @@
 
 import argparse
 import pathlib
+import shutil
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
@@ -18,3 +19,6 @@ if __name__ == "__main__":
 
     out = pathlib.Path(args.output)
     out.mkdir(parents=True, exist_ok=True)
+
+    for fig in pathlib.Path("figures").glob("*"):
+        shutil.copy(fig, out)
