@@ -294,15 +294,19 @@
                     bc
                   ];
 
-                inherit (self.checks.${system}.pre-commit-check) shellHook;
               };
 
             shells = with builtins; listToAttrs (map (name: lib.nameValuePair name (build-shell { inherit name; })) lab-list);
 
+            root_shell = (build-shell { name = "all"; groups = [ "dev" ] ++ lab-list; }).overrideAttrs (_: {
+              # We only install git hooks on the root shell
+              inherit (self.checks.${system}.pre-commit-check) shellHook;
+            });
+
           in
           {
             default = self.devShells.${system}.all;
-            all = build-shell { name = "all"; groups = [ "dev" ] ++ lab-list; };
+            all = root_shell;
           } // shells;
       });
 }
