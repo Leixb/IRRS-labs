@@ -1,0 +1,44 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+Watts-Strogatz model generates graphs that have so called small-world network property. Such networks should have low average path length and high clustering coefficient. The algorithm has three parameters: number of nodes in the graph, initial number of neighbors of each node distributed on a ring and rewiring probability.
+
+Interestingly in Watts-Strogatz model having small but positive values of rewiring probability generates graphs having desired properties
+To enhance it I wanted to plot median and 5 and 95 percentile of distribution of average path length and clustering coefficient as a function of rewiring probability.
+Here we explore simple models of networks that can be tuned through this middle ground: regular networks ‘rewired’ to introduce increasing amounts of disorder. We find that these systems can be highly clustered, like regular lattices, yet have small characteristic path lengths, like random graphs. We call them ‘small-world’ networks, by analogy with the small-world phenomenon13,14 (popularly known as six degrees of separation15).
+The Watts-Strogatz (WS) model is a random graph model that is used to generate small-world networks. Small-world networks are characterized by high clustering (i.e., high connectivity between neighbors) and short average path lengths (i.e., small distances between nodes).
+
+The WS model is defined by two parameters: n (the number of nodes in the graph) and p (the probability of rewiring each edge). The model generates a regular lattice graph with n nodes and k edges per node (where k is an input parameter), and then randomly rewires each edge with probability p. This results in a graph with high clustering and short average path lengths, similar to the structure of many real-world networks.
+
+The WS model is often used to study the properties of small-world networks and to test the performance of algorithms on small-world graphs. It is also used as a benchmark for comparing the performance of different graph models.
+
+The probability of rewiring each edge (p) is a parameter of the Watts-Strogatz (WS) model that determines the probability that an edge will be rewired during the generation of the WS graph.
+
+In the WS model, a regular lattice graph with n nodes and k edges per node is first generated. Each edge is then rewired with probability p, which means that it is replaced with a randomly chosen edge from a different node. This process results in a graph with high clustering and short average path lengths, similar to the structure of many real-world networks.
+
+The value of p controls the amount of randomness in the WS graph. When p is small (close to 0), most of the edges are left unchanged, and the graph has high clustering and long average path lengths. As p increases, more edges are rewired, and the graph becomes more random, with lower clustering and shorter average path lengths.
+
+```{r}
+avg.stat <- function(nei, p) {
+  result <- replicate(1000, {
+    wsg <- watts.strogatz.game(1, 100, nei, p)
+    c(average.path.length(wsg),
+      transitivity(wsg))
+  })
+  apply(result, 1, quantile, probs = c(0.5, 0.05, 0.95))
+}
+
+nei <- 6
+p <- seq(0, 1, len = 21)
+p <- 2 ^ -seq(0, 10, len = 21)
+result <- sapply(p, avg.stat, nei = nei)
+result <- t(result / rep(avg.stat(nei, 0)[1,], each = 3))
+par(mar=c(3.2, 2, 0.2, 0.2), mgp=c(2, 1, 0))
+matplot(p, result, type = "l", log = "x", xaxt = "n", ylab = "",
+        lty = rep(c(1,2,2),2), col=rep(c(1,2), each=3))
+#axis(1, at = 2^-(0:10),labels =  c(1, parse(text = paste(2, 1:10, sep = “^-“))))
+legend("bottomleft", c("average path length", "clustering coefficient"),
+        lty = 1, col = c(1, 2))
+```
+
